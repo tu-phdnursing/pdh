@@ -87,7 +87,7 @@ export interface StudentPortfolioData {
   dissertationProgress: { activity: string; date: string; progress: string; obstacles?: string; evidence: any }[];
   advisorMeetings: { date: string; persons: string; issues: string; actionPoints: string }[];
   ethicsGovernance: { dateApplied: string; dateApproved: string; approvalNumber: string; amendments: string; confidentiality: string };
-  researchExperience: { date: string; activity: string; description: string; hours: number; supervisor: string; evidence: string }[];
+  researchExperience: { date: string; activity: string; description: string; hours: number; supervisor: string; evidence: string; advisorName?: string; isEndorsed?: boolean; endorsedBy?: string; endorsementDate?: string }[];
   researchReflection: string;
   conferencePresentations: { date: string; title: string; conference: string; type: string; venue: string }[];
   publications: { year: string; title: string; journal: string; status: string; doi: string }[];
