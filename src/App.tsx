@@ -31,6 +31,7 @@ import AdvisorPanel from './components/AdvisorPanel';
 import PrintReport from './components/PrintReport';
 import AppsScriptHelp from './components/AppsScriptHelp';
 import AdvisoryChat from './components/AdvisoryChat';
+import UserManualModal from './components/UserManualModal';
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -45,6 +46,7 @@ export default function App() {
   const [allPortfolios, setAllPortfolios] = useState<{studentId: string, portfolio: StudentPortfolioData}[]>([]);
   const [apiUrl, setApiUrl] = useState('');
   const [showUrlConfig, setShowUrlConfig] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -879,7 +881,17 @@ export default function App() {
           </div>
 
           {/* User profile & Database sync indicator */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* User Manual Button */}
+            <button
+              onClick={() => setShowManualModal(true)}
+              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-tu-red rounded-xl font-bold text-xs transition flex items-center gap-1.5 border border-red-200/60 shadow-2xs cursor-pointer"
+              title="คู่มือการใช้งานระบบสำหรับนักศึกษาและอาจารย์ (User Manual)"
+            >
+              <BookOpen size={14} className="text-tu-red" />
+              <span className="hidden sm:inline">คู่มือใช้งาน (Manual)</span>
+            </button>
+
             {/* Database status icon & tiny config */}
             <div className="relative flex items-center">
               {currentUser.Role === 'ADMIN' ? (
@@ -1333,6 +1345,12 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* User Manual Modal */}
+      <UserManualModal
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+      />
 
     </div>
   );
