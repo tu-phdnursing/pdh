@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Doctoral Student Portfolio Management System - Prince of Songkla University, Faculty of Nursing">
+  <title>Doctoral Student Portfolio System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* -------------------------------------------------------------
+       CUSTOM ESTHETIC PAIRINGS & SYSTEM THEMING
+       Primary colors: Gold (#F9C94A), Dark Red (#B91C1C), Cream (#FFF8E7)
+       ------------------------------------------------------------- */
+    :root {
+      --primary-gold: #F9C94A;
+      --primary-red: #B91C1C;
+      --primary-red-hover: #991313;
+      --bg-cream: #FFF8E7;
+      --bg-soft: #FDFBF7;
+      --text-dark: #1E293B;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-soft);
+      color: var(--text-dark);
+      line-height: 1.5;
+    }
+
+    /* Core layout structure */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary-red) 0%, #7F1D1D 100%);
+      color: white;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    header h1 span {
+      color: var(--primary-gold);
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-badge img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-gold);
+      background-color: white;
+      object-fit: cover;
+    }
+
+    .user-badge .info {
+      text-align: right;
+    }
+
+    .user-badge .info p {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .user-badge .info span {
+      font-size: 0.75rem;
+      color: var(--primary-gold);
+      display: block;
+    }
+
+    /* Nav bar & content body */
+    .nav-bar {
+      background-color: var(--text-dark);
+      color: white;
+      display: flex;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0 1rem;
+      border-bottom: 2px solid var(--primary-gold);
+    }
+
+    .nav-bar button {
+      background: none;
+      border: none;
+      color: #E2E8F0;
+      padding: 1rem 1.25rem;
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+      font-family: var(--font-main);
+    }
+
+    .nav-bar button:hover {
+      color: var(--primary-gold);
+    }
+
+    .nav-bar button.active {
+      color: var(--primary-gold);
+      border-bottom-color: var(--primary-gold);
+      font-weight: 600;
+    }
+
+    .main-body {
+      flex: 1;
+      padding: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Cards and layout grids */
+    .card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card h2 {
+      font-size: 1.125rem;
+      color: var(--primary-red);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 5px solid var(--primary-red);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-card.gold {
+      border-left-color: var(--primary-gold);
+    }
+
+    .kpi-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .kpi-card .label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Login Page */
+    .login-container {
+      max-width: 420px;
+      margin: 6rem auto;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      padding: 2.5rem;
+      border-top: 6px solid var(--primary-red);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-logo h2 {
+      color: var(--primary-red);
+      font-size: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.375rem;
+      color: var(--text-dark);
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 0.925rem;
+      transition: all 0.2s;
+      font-family: var(--font-main);
+    }
+
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary-red);
+      box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.625rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      gap: 0.5rem;
+      font-family: var(--font-main);
+    }
+
+    .btn-primary {
+      background-color: var(--primary-red);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-red-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: #E2E8F0;
+      color: var(--text-dark);
+    }
+
+    .btn-secondary:hover {
+      background-color: #CBD5E1;
+    }
+
+    .btn-gold {
+      background-color: var(--primary-gold);
+      color: var(--text-dark);
+    }
+
+    .btn-gold:hover {
+      background-color: #E2B235;
+    }
+
+    /* Modal / Popup Form Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      max-width: 650px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      padding: 1.5rem;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      color: var(--primary-red);
+    }
+
+    .modal-close {
+      font-size: 1.5rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+    }
+
+    /* Report Print view */
+    .print-report-container {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Chats and Notify specific styling */
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1.5rem;
+      height: 600px;
+    }
+
+    .chat-sidebar {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: white;
+      overflow-y: auto;
+    }
+
+    .chat-thread-item {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: background 0.2s;
+    }
+
+    .chat-thread-item:hover {
+      background-color: #F8FAFC;
+    }
+
+    .chat-thread-item.active {
+      background-color: var(--bg-cream);
+    }
+
+    .chat-main {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: white;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chat-bubble {
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      animation: bubbleIn 0.2s ease-out;
+    }
+
+    @keyframes bubbleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .chat-bubble.sent {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--primary-red) 0%, #991313 100%);
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+
+    .chat-bubble.received {
+      align-self: flex-start;
+      background-color: #F1F5F9;
+      color: var(--text-dark);
+      border-bottom-left-radius: 2px;
+    }
+
+    .chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* Print styling rules */
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+      }
+      header, .nav-bar, .no-print, .btn, .modal {
+        display: none !important;
+      }
+      .main-body {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .print-report-container {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+      .page-break {
+        page-break-before: always !important;
+      }
+    }
+
+    /* Toast Indicator styling */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: linear-gradient(135deg, var(--text-dark) 0%, #334155 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      font-weight: 500;
+      z-index: 2000;
+      display: none;
+      animation: fadeInUp 0.3s forwards;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      background: #E2E8F0;
+      border-radius: 9999px;
+      overflow: hidden;
+      height: 10px;
+      width: 100%;
+    }
+    .progress-fill {
+      background: linear-gradient(90deg, var(--primary-gold) 0%, #E2B235 100%);
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.5s ease-out;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #FAFBFD;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary-gold);
+      background: var(--bg-cream);
+    }
+
+    @keyframes fadeInUp {
+      from { transform: translateY(1rem); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .chat-layout { grid-template-columns: 1fr; height: auto; }
+      .chat-sidebar { max-height: 200px; }
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .grid-4 { grid-template-columns: 1fr; }
+      header h1 { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Wrapper -->
+  <div class="app-container" id="appWrapper">
+    <!-- Main UI gets dynamically rendered inside here via javascript -->
+  </div>
+
+  <!-- Global Modal Popup -->
+  <div class="modal" id="globalModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Edit Information</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="modalBody">
+        <!-- Form injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:3000; align-items:center; justify-content:center; flex-direction:column; backdrop-filter:blur(4px);">
+    <div style="border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-red); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 0.5rem;"></div>
+    <span style="font-weight: 500; color: var(--text-dark);">Processing, please wait...</span>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast" id="globalToast">Success!</div>
+
+  <!-- Global JavaScript Core Controller -->
+  <script>
+    // ============================================================
+    // CONFIGURATION
+    // ============================================================
+
+    // Google Apps Script Web App URL — SET THIS after deploying Code.gs as Web App
+    // Users can also set it via the Setup page on first load
+    let GAS_WEB_APP_URL = localStorage.getItem('doctoral_gas_url') || '';
+
+    // System State Storage
+    const AppState = {
+      currentUser: null,
+      data: null,
+      selectedStudentId: null,
+      currentPage: 'dashboard',
+      activeChatThreadId: null
+    };
+
+    // ============================================================
+    // APP INITIALIZATION
+    // ============================================================
+
+    window.onload = function() {
+      initApp();
+    };
+
+    function initApp() {
+      // If no GAS URL configured, show setup page
+      if (!GAS_WEB_APP_URL) {
+        renderSetupPage();
+        return;
+      }
+
+      try {
+        const storedUser = localStorage.getItem('doctoral_portfolio_user');
+        if (storedUser) {
+          AppState.currentUser = JSON.parse(storedUser);
+          loadAppData();
+        } else {
+          renderLoginPage();
+        }
+      } catch (e) {
+        console.error("Failed to parse stored user session:", e);
+        localStorage.removeItem('doctoral_portfolio_user');
+        renderLoginPage();
+      }
+    }
+
+    // ============================================================
+    // SETUP PAGE — Configure GAS Web App URL
+    // ============================================================
+
+    function renderSetupPage() {
+      const wrapper = document.getElementById('appWrapper');
+      wrapper.innerHTML = `
+        <div class="login-container" style="max-width: 520px; border-top: 6px solid var(--primary-gold);">
+          <div class="login-logo">
+            <svg style="width:50px; height:50px; fill:var(--primary-red);" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3M5.47 12.5l-2.47-1.35V17c0 1.66 4 3 9 3s9-1.34 9-3v-5.85l-2.47 1.35c-1.5 1-4.13 1.5-6.53 1.5s-5.03-.5-6.53-1.5z"/></svg>
+            <h2 style="border:none; padding:0;">System Setup</h2>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Doctoral Student Portfolio — Initial Configuration</p>
+          </div>
+
+          <div style="background:#FFFBEB; padding:1rem; border-radius:8px; border:1px solid #FEF3C7; margin-bottom:1.5rem; font-size:0.85rem;">
+            <p style="font-weight:bold; color:var(--primary-red); margin-bottom:0.5rem;">⚙️ ตั้งค่าระบบครั้งแรก (First-Time Setup)</p>
+            <p>กรุณาใส่ URL ของ Google Apps Script Web App ที่ deploy แล้ว</p>
+            <p style="margin-top:0.5rem; color:var(--text-muted);">URL จะมีรูปแบบ: <code>https://script.google.com/macros/s/xxxxx/exec</code></p>
+          </div>
+
+          <div class="form-group">
+            <label>Google Apps Script Web App URL</label>
+            <input type="url" id="gasUrlInput" required placeholder="https://script.google.com/macros/s/xxxxx/exec" value="${localStorage.getItem('doctoral_gas_url') || ''}">
+          </div>
+
+          <button class="btn btn-primary" style="width:100%; margin-top:0.5rem;" onclick="saveGasUrl()">💾 Save & Connect</button>
+
+          <div style="margin-top:1.5rem; background:#F8FAFC; padding:1rem; border-radius:8px; font-size:0.8rem; border:1px dashed var(--border-color);">
+            <p style="font-weight:bold; color:var(--primary-red); margin-bottom:0.5rem;">📋 วิธีการตั้งค่า:</p>
+            <ol style="padding-left:1.25rem; display:flex; flex-direction:column; gap:0.25rem;">
+              <li>เปิด Google Sheet → Extensions → Apps Script</li>
+              <li>วาง Code.gs ลงในตัวแก้ไข</li>
+              <li>กดเรียกฟังก์ชัน <code>setupDatabase</code> แล้วกด Run</li>
+              <li>กดเรียกฟังก์ชัน <code>setupExampleData</code> แล้วกด Run</li>
+              <li>ไปที่ Deploy → New deployment → Web app</li>
+              <li>ตั้ง Execute as: <strong>Me</strong> / Who has access: <strong>Anyone</strong></li>
+              <li>Copy URL มาวางข้างบน</li>
+            </ol>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveGasUrl() {
+      const url = document.getElementById('gasUrlInput').value.trim();
+      if (!url) {
+        alert('กรุณาใส่ URL ก่อน');
+        return;
+      }
+      if (!url.startsWith('https://script.google.com/')) {
+        if (!confirm('URL นี้ไม่ใช่ Google Apps Script URL ตามปกติ ต้องการใช้ต่อหรือไม่?')) {
+          return;
+        }
+      }
+      localStorage.setItem('doctoral_gas_url', url);
+      GAS_WEB_APP_URL = url;
+      showToast('✅ Connected to API successfully!');
+
+      // Test connection
+      callServer('ping', {}, function(res) {
+        if (res && (res.success || res.message)) {
+          showToast('✅ API is reachable! Redirecting to login...');
+          setTimeout(function() {
+            renderLoginPage();
+          }, 1000);
+        }
+      }, function(err) {
+        showToast('⚠️ API connection test failed: ' + err);
+        renderLoginPage();
+      }, true); // isGet = true for ping
+    }
+
+    // ============================================================
+    // SERVER COMMUNICATION — fetch() based
+    // ============================================================
+
+    /**
+     * Call the GAS Web App API.
+     * For POST requests: sends { action, payload } as JSON body.
+     * For GET requests: sends ?action=xxx&param1=yyy as query params.
+     *
+     * GAS Web App redirects (302) to a random googleusercontent.com URL.
+     * We must use `fetch()` with `redirect: 'follow'` (default) to handle this.
+     *
+     * CORS workaround: GAS Web App doesn't set CORS headers on the initial
+     * response, but the redirected response from googleusercontent.com does.
+     * So standard fetch with redirect:follow works.
+     */
+    function callServer(action, payload, callback, errorCallback, isGet) {
+      showLoading(true);
+
+      if (!GAS_WEB_APP_URL) {
+        showLoading(false);
+        renderSetupPage();
+        return;
+      }
+
+      let fetchPromise;
+
+      if (isGet) {
+        // GET request with query parameters
+        const params = new URLSearchParams({ action: action });
+        if (payload) {
+          for (const key in payload) {
+            params.append(key, payload[key]);
+          }
+        }
+        fetchPromise = fetch(GAS_WEB_APP_URL + '?' + params.toString(), {
+          method: 'GET',
+          redirect: 'follow'
+        });
+      } else {
+        // POST request with JSON body
+        fetchPromise = fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify({
+            action: action,
+            payload: payload
+          })
+        });
+      }
+
+      fetchPromise
+        .then(function(response) {
+          return response.text();
+        })
+        .then(function(text) {
+          showLoading(false);
+          try {
+            const data = JSON.parse(text);
+            if (data.error) {
+              const errMsg = data.error;
+              if (errorCallback) {
+                errorCallback(errMsg);
+              } else {
+                showToast('❌ Error: ' + errMsg);
+              }
+            } else {
+              if (callback) callback(data);
+            }
+          } catch (parseErr) {
+            console.error('Failed to parse server response:', text);
+            if (errorCallback) {
+              errorCallback('Invalid response from server');
+            } else {
+              showToast('❌ Invalid server response');
+            }
+          }
+        })
+        .catch(function(fetchErr) {
+          showLoading(false);
+          console.error("Fetch error:", fetchErr);
+          const errMsg = fetchErr.message || fetchErr.toString();
+          if (errorCallback) {
+            errorCallback(errMsg);
+          } else {
+            showToast('❌ Network error: ' + errMsg);
+          }
+        });
+    }
+
+    // ============================================================
+    // UI HELPERS
+    // ============================================================
+
+    function showToast(msg) {
+      const toast = document.getElementById('globalToast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3500);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+    }
+
+    function closeModal() {
+      document.getElementById('globalModal').style.display = 'none';
+    }
+
+    // ============================================================
+    // LOGIN PAGE
+    // ============================================================
+
+    function renderLoginPage() {
+      const wrapper = document.getElementById('appWrapper');
+      wrapper.innerHTML = `
+        <div class="login-container">
+          <div class="login-logo">
+            <svg style="width:50px; height:50px; fill:var(--primary-red);" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3M5.47 12.5l-2.47-1.35V17c0 1.66 4 3 9 3s9-1.34 9-3v-5.85l-2.47 1.35c-1.5 1-4.13 1.5-6.53 1.5s-5.03-.5-6.53-1.5z"/></svg>
+            <h2 style="border:none; padding:0;">Doctoral Student Portfolio</h2>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Prince of Songkla University, Faculty of Nursing</p>
+          </div>
+          <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="loginEmail" required placeholder="student@example.com" value="student@example.com">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="loginPassword" required placeholder="Enter password" value="1234">
+            </div>
+            <div class="form-group" style="display:flex; align-items:center; gap:0.5rem;">
+              <input type="checkbox" id="rememberMe" checked style="width:auto;">
+              <label for="rememberMe" style="margin-bottom:0; font-weight:500; font-size:0.85rem;">Remember me on this device</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Sign In</button>
+          </form>
+
+          <div style="margin-top:1.5rem; background:#F8FAFC; padding:1rem; border-radius:8px; font-size:0.8rem; border:1px dashed var(--border-color);">
+            <p style="font-weight:bold; color:var(--primary-red); margin-bottom:0.25rem;">Demo Accounts (Password: 1234):</p>
+            <p>• Student: <strong>student@example.com</strong></p>
+            <p>• Advisor: <strong>advisor@example.com</strong></p>
+            <p>• CoAdvisor: <strong>coadvisor@example.com</strong></p>
+            <p>• Admin: <strong>admin@example.com</strong></p>
+          </div>
+
+          <div style="margin-top:1rem; text-align:center;">
+            <button class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.75rem;" onclick="localStorage.removeItem('doctoral_gas_url'); GAS_WEB_APP_URL=''; renderSetupPage();">⚙️ Change API URL</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+      const remember = document.getElementById('rememberMe').checked;
+
+      callServer('login', { email: email, password: pass }, function(user) {
+        AppState.currentUser = user;
+        if (remember) {
+          localStorage.setItem('doctoral_portfolio_user', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('doctoral_portfolio_user');
+        }
+        showToast('Welcome back, ' + user.FullName);
+        loadAppData();
+      }, function(err) {
+        alert("Authentication failed: " + err);
+      });
+    }
+
+    // ============================================================
+    // DATA LOADING
+    // ============================================================
+
+    function loadAppData() {
+      callServer('getAppData', { userId: AppState.currentUser.UserID }, function(response) {
+        AppState.data = response;
+
+        // For Advisor and CoAdvisor, auto-select first student
+        if (AppState.currentUser.Role === 'Advisor' || AppState.currentUser.Role === 'CoAdvisor') {
+          const advised = AppState.data.users.filter(u => u.Role === 'Student');
+          if (advised.length > 0) {
+            AppState.selectedStudentId = advised[0].UserID;
+          }
+        } else {
+          AppState.selectedStudentId = AppState.currentUser.UserID;
+        }
+
+        renderMainLayout();
+      }, function(err) {
+        renderErrorPage(err, "ไม่สามารถโหลดข้อมูลผู้ใช้ได้ (Failed to load user portfolio data)");
+      });
+    }
+
+    // ============================================================
+    // ERROR PAGE
+    // ============================================================
+
+    function renderErrorPage(error, title) {
+      const wrapper = document.getElementById('appWrapper');
+      wrapper.innerHTML = `
+        <div class="login-container" style="max-width: 600px; margin: 4rem auto; border-top: 6px solid var(--primary-red);">
+          <div class="login-logo" style="margin-bottom: 1.5rem;">
+            <svg style="width:50px; height:50px; fill:var(--primary-red);" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <h2 style="color:var(--primary-red); font-size:1.4rem; margin-top:0.5rem; border:none; padding:0;">${title || "เกิดข้อผิดพลาดในการโหลดระบบ"}</h2>
+          </div>
+          
+          <div style="background: #FFF5F5; border: 1px solid #FED7D7; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-family: monospace; font-size: 0.85rem; color: var(--primary-red); word-break: break-all;">
+            <strong>Error Details:</strong><br>${error}
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="handleLogout()" style="flex: 1;">ล้างข้อมูลเซสชัน & เข้าสู่ระบบใหม่</button>
+            <button class="btn btn-primary" onclick="window.location.reload()" style="flex: 1;">โหลดหน้าเว็บใหม่อีกครั้ง</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // LOGOUT
+    // ============================================================
+
+    function handleLogout() {
+      localStorage.removeItem('doctoral_portfolio_user');
+      AppState.currentUser = null;
+      AppState.data = null;
+      renderLoginPage();
+    }
+
+    // ============================================================
+    // MAIN LAYOUT
+    // ============================================================
+
+    function navigateTo(page) {
+      AppState.currentPage = page;
+      const buttons = document.querySelectorAll('.nav-bar button');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-page') === page) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      renderPageContent();
+    }
+
+    function renderMainLayout() {
+      const wrapper = document.getElementById('appWrapper');
+      const role = AppState.currentUser.Role;
+      
+      let navHtml = `
+        <button data-page="dashboard" class="active" onclick="navigateTo('dashboard')">Dashboard</button>
+        <button data-page="profile" onclick="navigateTo('profile')">Personal Information</button>
+        <button data-page="portfolio" onclick="navigateTo('portfolio')">Portfolio Records (1-14)</button>
+      `;
+
+      if (role === 'Advisor' || role === 'CoAdvisor') {
+        navHtml += `<button data-page="workspace" onclick="navigateTo('workspace')">Advisor Workspace</button>`;
+      }
+      
+      navHtml += `
+        <button data-page="evidence" onclick="navigateTo('evidence')">📎 Upload Evidence</button>
+        <button data-page="notify" onclick="navigateTo('notify')">Notifications</button>
+        <button data-page="chat" onclick="navigateTo('chat')">Messages / Chat</button>
+        <button data-page="report" onclick="navigateTo('report')">Report & Print</button>
+      `;
+
+      if (role === 'Admin') {
+        navHtml += `<button data-page="admin" onclick="navigateTo('admin')">Admin Panel</button>`;
+      }
+
+      wrapper.innerHTML = `
+        <header>
+          <h1>Doctoral Student <span>Portfolio System</span></h1>
+          <div class="user-badge">
+            <div class="info">
+              <p>${AppState.currentUser.FullName}</p>
+              <span>Role: ${AppState.currentUser.Role}</span>
+            </div>
+            <img src="${AppState.currentUser.PhotoURL || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (AppState.currentUser.FirstName || 'User')}" alt="User Avatar">
+            <button class="btn btn-secondary" onclick="handleLogout()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: bold;">Logout</button>
+          </div>
+        </header>
+        <nav class="nav-bar no-print">
+          ${navHtml}
+        </nav>
+        <main class="main-body" id="pageContent">
+          <!-- Dynamically filled page content -->
+        </main>
+      `;
+
+      renderPageContent();
+    }
+
+    function renderPageContent() {
+      const page = AppState.currentPage;
+      const target = document.getElementById('pageContent');
+
+      if (page === 'dashboard') {
+        renderDashboard(target);
+      } else if (page === 'profile') {
+        renderInformation(target);
+      } else if (page === 'portfolio') {
+        renderPortfolioEntry(target);
+      } else if (page === 'workspace') {
+        renderAdvisorWorkspace(target);
+      } else if (page === 'evidence') {
+        renderEvidenceUpload(target);
+      } else if (page === 'notify') {
+        renderNotify(target);
+      } else if (page === 'chat') {
+        renderChat(target);
+      } else if (page === 'report') {
+        renderReport(target);
+      } else if (page === 'admin') {
+        renderAdmin(target);
+      }
+    }
+
+    // ============================================================
+    // PAGE RENDERERS
+    // ============================================================
+
+    function renderDashboard(target) {
+      const studentId = AppState.selectedStudentId;
+      const student = AppState.data.users.find(u => u.UserID === studentId) || AppState.currentUser;
+      
+      const records = AppState.data.portfolioRecords.filter(r => r.StudentUserID === studentId);
+      const hours = AppState.data.researchHours.filter(h => h.StudentUserID === studentId);
+      const totalHours = hours.reduce((sum, h) => sum + Number(h.Hours || 0), 0);
+      const publications = records.filter(r => Number(r.SectionNo) === 7).length;
+      const evidence = AppState.data.evidence.filter(e => e.StudentUserID === studentId).length;
+
+      const unreadNotify = AppState.data.notifications.filter(n => n.ReceiverUserID === AppState.currentUser.UserID && String(n.IsRead) === 'FALSE').length;
+
+      target.innerHTML = `
+        <div style="margin-bottom: 1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h2 style="font-size:1.5rem; color:var(--primary-red); font-weight:700;">Academic Portfolio Summary</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Review milestones, logged experience hours, and dissertation progress indicators</p>
+          </div>
+          ${AppState.currentUser.Role !== 'Student' ? `
+            <div style="background:var(--bg-cream); padding:0.5rem 1rem; border-radius:8px; border:1px solid var(--primary-gold); font-size:0.9rem;">
+              Viewing Student: <strong>${student.FullName}</strong> (${student.StudentID || 'N/A'})
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="grid-4">
+          <div class="kpi-card">
+            <div>
+              <div class="value">${records.length}</div>
+              <div class="label">Section Entries logged</div>
+            </div>
+            <div style="font-size:1.5rem;">📊</div>
+          </div>
+          <div class="kpi-card gold">
+            <div>
+              <div class="value">${totalHours} / 180 hrs</div>
+              <div class="label">Research Experience Hours</div>
+            </div>
+            <div style="font-size:1.5rem;">⏱️</div>
+          </div>
+          <div class="kpi-card">
+            <div>
+              <div class="value">${publications}</div>
+              <div class="label">Scholarly Publications</div>
+            </div>
+            <div style="font-size:1.5rem;">📚</div>
+          </div>
+          <div class="kpi-card gold">
+            <div>
+              <div class="value">${evidence}</div>
+              <div class="label">Uploaded Evidence PDFs</div>
+            </div>
+            <div style="font-size:1.5rem;">📎</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+          <div class="card">
+            <h2>PhD Research Milestone Timeline</h2>
+            <div style="position:relative; padding-left:1.5rem; border-left: 2px solid var(--border-color); margin-top:1.5rem;">
+              <div style="margin-bottom:1.5rem; position:relative;">
+                <div style="position:absolute; left:-1.95rem; top:0.2rem; width:12px; height:12px; border-radius:50%; background:var(--primary-red);"></div>
+                <h4 style="font-weight:bold; font-size:1rem;">Qualifying Examination</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Passed in Sem 1/2025</p>
+              </div>
+              <div style="margin-bottom:1.5rem; position:relative;">
+                <div style="position:absolute; left:-1.95rem; top:0.2rem; width:12px; height:12px; border-radius:50%; background:var(--primary-gold);"></div>
+                <h4 style="font-weight:bold; font-size:1rem;">English Language requirement pass</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted);">TOEFL score 560 approved - Passed</p>
+              </div>
+              <div style="margin-bottom:1.5rem; position:relative;">
+                <div style="position:absolute; left:-1.95rem; top:0.2rem; width:12px; height:12px; border-radius:50%; background:#94A3B8;"></div>
+                <h4 style="font-weight:bold; font-size:1rem;">Dissertation Proposal Defense</h4>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Scheduled: Semester 1/2026 (In preparation stage)</p>
+              </div>
+              <div style="position:relative;">
+                <div style="position:absolute; left:-1.95rem; top:0.2rem; width:12px; height:12px; border-radius:50%; background:#E2E8F0;"></div>
+                <h4 style="font-weight:bold; font-size:1rem; color:#94A3B8;">Final Dissertation Defense</h4>
+                <p style="font-size:0.85rem; color:#94A3B8;">Target date: 2028</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Experience Hour Goal</h2>
+            <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1rem;">Requirement for Doctoral program: 180 total hours.</p>
+            <div class="progress-bar" style="margin-bottom:0.5rem;">
+              <div class="progress-fill" style="width: ${Math.min((totalHours / 180) * 100, 100)}%;"></div>
+            </div>
+            <p style="font-size:0.85rem; font-weight:bold; text-align:right;">${Math.round((totalHours / 180) * 100)}% Complete</p>
+            
+            <div style="margin-top:1.5rem; background:#FFFBEB; padding:1rem; border-radius:8px; border:1px solid #FEF3C7; font-size:0.85rem;">
+              <strong>Quick Actions:</strong>
+              <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                <button class="btn btn-secondary" style="padding:0.35rem; font-size:0.75rem;" onclick="navigateTo('portfolio')">+ Add Portfolio record</button>
+                <button class="btn btn-primary" style="padding:0.35rem; font-size:0.75rem;" onclick="navigateTo('report')">🖨️ Print Portfolio</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // PERSONAL INFORMATION PAGE
+    // ============================================================
+
+    function renderInformation(target) {
+      const studentId = AppState.selectedStudentId;
+      const student = AppState.data.users.find(u => u.UserID === studentId) || AppState.currentUser;
+      const profile = AppState.data.studentProfiles.find(p => p.StudentUserID === studentId) || {};
+
+      target.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <h2 style="font-size:1.5rem; color:var(--primary-red); font-weight:700;">Student Personal Profile</h2>
+          <button class="btn btn-primary" onclick="openEditProfileModal()">Edit Personal Info</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 300px 1fr; gap:2rem;">
+          <div class="card" style="text-align:center;">
+            <img src="${student.PhotoURL || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (student.FirstName || 'User')}" style="width:150px; height:150px; border-radius:50%; border:4px solid var(--primary-gold); margin-bottom:1rem; object-fit:cover;">
+            <h3 style="font-weight:700; font-size:1.15rem; color:var(--text-dark);">${student.FullName}</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Student ID: ${student.StudentID || 'N/A'}</p>
+            <div style="text-align:left; font-size:0.85rem; border-top:1px solid var(--border-color); padding-top:1rem;">
+              <p style="margin-bottom:0.5rem;"><strong>Program:</strong> ${student.Program || 'Ph.D. Nursing Science'}</p>
+              <p style="margin-bottom:0.5rem;"><strong>Admission Year:</strong> ${student.AdmissionYear || '2025'}</p>
+              <p style="margin-bottom:0.5rem;"><strong>Expected Grad Year:</strong> ${student.ExpectedGraduationYear || '2028'}</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>PhD Personal Information Summary</h2>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+              <div>
+                <strong style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); display:block;">Email Address</strong>
+                <span>${student.Email}</span>
+              </div>
+              <div>
+                <strong style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); display:block;">Contact Number</strong>
+                <span>${student.Phone || 'Not logged'}</span>
+              </div>
+              <div>
+                <strong style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); display:block;">Line ID</strong>
+                <span>${student.LineID || 'Not logged'}</span>
+              </div>
+              <div>
+                <strong style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); display:block;">ORCID ID</strong>
+                <span style="font-family:monospace; color:var(--primary-red); font-weight:600;">${student.ORCID || 'Not logged'}</span>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border-color); padding-top:1.5rem; margin-top:1.5rem;">
+              <h3 style="font-size:1rem; font-weight:700; color:var(--primary-red); margin-bottom:0.5rem;">Research Interests</h3>
+              <p style="background:var(--bg-cream); padding:1rem; border-radius:8px; border-left:4px solid var(--primary-gold); font-size:0.9rem;">
+                ${student.ResearchInterests || 'No research interests described yet.'}
+              </p>
+            </div>
+
+            <div style="margin-top:1.5rem;">
+              <h3 style="font-size:1rem; font-weight:700; color:var(--primary-red); margin-bottom:0.5rem;">Goals for Doctoral Study</h3>
+              <p style="font-size:0.9rem; line-height:1.6; color:var(--text-dark);">
+                ${profile.GoalsForDoctoralStudy || 'Not yet recorded. Update goals via edit.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // PROFILE EDIT MODAL
+    // ============================================================
+
+    function openEditProfileModal() {
+      const studentId = AppState.selectedStudentId;
+      const student = AppState.data.users.find(u => u.UserID === studentId);
+      const profile = AppState.data.studentProfiles.find(p => p.StudentUserID === studentId) || {};
+
+      document.getElementById('modalTitle').innerText = "Edit Personal and Study Profile";
+      document.getElementById('modalBody').innerHTML = `
+        <form id="editProfileForm" onsubmit="saveProfileForm(event)">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label>Prefix</label>
+              <input type="text" id="editPrefix" value="${student.Prefix || ''}">
+            </div>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="editFullName" required value="${student.FullName || ''}">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" id="editPhone" value="${student.Phone || ''}">
+            </div>
+            <div class="form-group">
+              <label>Line ID</label>
+              <input type="text" id="editLineID" value="${student.LineID || ''}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ORCID iD</label>
+            <input type="text" id="editORCID" value="${student.ORCID || ''}">
+          </div>
+          <div class="form-group">
+            <label>Research Interests</label>
+            <textarea id="editInterests" rows="3">${student.ResearchInterests || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Goals for Doctoral Study</label>
+            <textarea id="editGoals" rows="4">${profile.GoalsForDoctoralStudy || ''}</textarea>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; border-top:1px solid var(--border-color); padding-top:1rem; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      `;
+      document.getElementById('globalModal').style.display = 'flex';
+    }
+
+    function saveProfileForm(e) {
+      e.preventDefault();
+      const studentId = AppState.selectedStudentId;
+      const profile = AppState.data.studentProfiles.find(p => p.StudentUserID === studentId) || {};
+
+      const payload = {
+        ProfileID: profile.ProfileID || '',
+        StudentUserID: studentId,
+        FullName: document.getElementById('editFullName').value,
+        ContactInformation: 'Email: ' + AppState.currentUser.Email + ', Phone: ' + document.getElementById('editPhone').value,
+        CurrentPositionAffiliation: '',
+        ResearchInterests: document.getElementById('editInterests').value,
+        ORCID: document.getElementById('editORCID').value,
+        GoalsForDoctoralStudy: document.getElementById('editGoals').value,
+        UpdatedBy: AppState.currentUser.UserID
+      };
+
+      callServer('saveUserProfile', payload, function(res) {
+        showToast("Profile information updated successfully.");
+        closeModal();
+        loadAppData();
+      });
+    }
+
+    // ============================================================
+    // PORTFOLIO ENTRIES 1-14 MANAGEMENT
+    // ============================================================
+
+    function renderPortfolioEntry(target) {
+      target.innerHTML = `
+        <div class="card">
+          <h2>Select Doctoral Portfolio Section</h2>
+          <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+            <select id="sectionSelect" style="flex:1; padding:0.6rem; border-radius:8px; border:1px solid var(--border-color); font-family:var(--font-main);" onchange="handleSectionChange()">
+              <option value="1">Section 1: Student Profile</option>
+              <option value="2">Section 2: Program of Study and Academic Milestones</option>
+              <option value="3">Section 3: English Language Proficiency Requirement</option>
+              <option value="4">Section 4: Coursework and Academic Development</option>
+              <option value="5">Section 5: Research Development and Dissertation Progress</option>
+              <option value="6">Section 6: Research Experience Requirement (Hours Log)</option>
+              <option value="7">Section 7: Scholarly Output (Publications, Presentations)</option>
+              <option value="8">Section 8: Teaching, Mentoring, and Academic Service</option>
+              <option value="9">Section 9: Professional Development and Leadership</option>
+              <option value="10">Section 10: Reflective Practice (Reflections on Growth)</option>
+              <option value="11">Section 11: Evidence and Supporting Documents</option>
+              <option value="12">Section 12: Self-Assessment of Doctoral Competencies</option>
+              <option value="13">Section 13: Annual Review Summary</option>
+              <option value="14">Section 14: Future Career Plan</option>
+            </select>
+            <button class="btn btn-primary" onclick="openNewRecordModal()">+ Add New Entry</button>
+          </div>
+
+          <div id="recordsList">
+            <!-- Records listed here -->
+          </div>
+        </div>
+      `;
+      handleSectionChange();
+    }
+
+    function handleSectionChange() {
+      const sectionNo = Number(document.getElementById('sectionSelect').value);
+      const studentId = AppState.selectedStudentId;
+      const records = AppState.data.portfolioRecords.filter(r => r.StudentUserID === studentId && Number(r.SectionNo) === sectionNo);
+      const listTarget = document.getElementById('recordsList');
+
+      if (records.length === 0) {
+        listTarget.innerHTML = `
+          <div style="text-align:center; padding:3rem; background:#F8FAFC; border:1px dashed var(--border-color); border-radius:8px; color:var(--text-muted);">
+            No records filed under this section yet. Click "+ Add New Entry" above to add portfolio information.
+          </div>
+        `;
+        return;
+      }
+
+      let recordsHtml = '';
+      records.forEach(r => {
+        recordsHtml += `
+          <div class="card" style="border-left: 4px solid var(--primary-gold); margin-bottom:1rem; background:#FDFBF7;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+              <div>
+                <strong style="color:var(--primary-red); font-size:0.85rem;">Subsection: ${r.SubsectionNo} ${r.SubsectionTitle}</strong>
+                <h4 style="font-weight:bold; font-size:1.1rem; color:var(--text-dark); margin-top:0.25rem;">${r.Field1}</h4>
+              </div>
+              <div class="no-print" style="display:flex; gap:0.5rem;">
+                <button class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.75rem;" onclick="editRecord('${r.RecordID}')">Edit</button>
+                <button class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.75rem; background:#FEE2E2; color:var(--primary-red);" onclick="deleteRecord('${r.RecordID}')">Delete</button>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.875rem; margin-top:0.5rem; color:var(--text-muted);">
+              ${r.Field2 ? '<div><strong>Details:</strong> ' + r.Field2 + '</div>' : ''}
+              ${r.Field3 ? '<div><strong>Status:</strong> ' + r.Field3 + '</div>' : ''}
+              ${r.Field4 ? '<div><strong>Date/Ref:</strong> ' + r.Field4 + '</div>' : ''}
+            </div>
+            ${r.LongText ? '<p style="font-size:0.9rem; margin-top:0.75rem; line-height:1.5; color:var(--text-dark); border-top:1px dashed var(--border-color); padding-top:0.5rem;">' + r.LongText + '</p>' : ''}
+          </div>
+        `;
+      });
+      listTarget.innerHTML = recordsHtml;
+    }
+
+    function openNewRecordModal() {
+      const sectionNo = Number(document.getElementById('sectionSelect').value);
+      document.getElementById('modalTitle').innerText = 'Add New Portfolio Entry for Section ' + sectionNo;
+      
+      document.getElementById('modalBody').innerHTML = `
+        <form id="newRecordForm" onsubmit="saveRecordForm(event)">
+          <input type="hidden" id="recordId" value="">
+          <div class="form-group">
+            <label>Subsection Title / Category</label>
+            <input type="text" id="subTitle" required placeholder="e.g., Degree Background or Publication Status">
+          </div>
+          <div class="form-group">
+            <label>Title / Course Name / Activity</label>
+            <input type="text" id="field1" required placeholder="Enter primary details">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label>Details / Institution / Journal</label>
+              <input type="text" id="field2">
+            </div>
+            <div class="form-group">
+              <label>Year / Status / Milestone</label>
+              <input type="text" id="field3">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Dates or Other Remarks</label>
+            <input type="text" id="field4">
+          </div>
+          <div class="form-group">
+            <label>Summary / Narrative Reflection</label>
+            <textarea id="longText" rows="4" placeholder="Describe achievements, outcomes or learning reflections"></textarea>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; border-top:1px solid var(--border-color); padding-top:1rem; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Entry</button>
+          </div>
+        </form>
+      `;
+      document.getElementById('globalModal').style.display = 'flex';
+    }
+
+    function editRecord(recordId) {
+      const record = AppState.data.portfolioRecords.find(r => r.RecordID === recordId);
+      if (!record) return;
+
+      document.getElementById('modalTitle').innerText = "Edit Portfolio Entry";
+      document.getElementById('modalBody').innerHTML = `
+        <form id="newRecordForm" onsubmit="saveRecordForm(event)">
+          <input type="hidden" id="recordId" value="${record.RecordID}">
+          <div class="form-group">
+            <label>Subsection Title / Category</label>
+            <input type="text" id="subTitle" required value="${record.SubsectionTitle || ''}">
+          </div>
+          <div class="form-group">
+            <label>Title / Course Name / Activity</label>
+            <input type="text" id="field1" required value="${record.Field1 || ''}">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label>Details / Institution / Journal</label>
+              <input type="text" id="field2" value="${record.Field2 || ''}">
+            </div>
+            <div class="form-group">
+              <label>Year / Status / Milestone</label>
+              <input type="text" id="field3" value="${record.Field3 || ''}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Dates or Other Remarks</label>
+            <input type="text" id="field4" value="${record.Field4 || ''}">
+          </div>
+          <div class="form-group">
+            <label>Summary / Narrative Reflection</label>
+            <textarea id="longText" rows="4">${record.LongText || ''}</textarea>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; border-top:1px solid var(--border-color); padding-top:1rem; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      `;
+      document.getElementById('globalModal').style.display = 'flex';
+    }
+
+    function saveRecordForm(e) {
+      e.preventDefault();
+      const recordId = document.getElementById('recordId').value;
+      const sectionNo = Number(document.getElementById('sectionSelect').value);
+      const sectionSelect = document.getElementById('sectionSelect');
+      const sectionTitle = sectionSelect.options[sectionSelect.selectedIndex].text;
+      
+      const payload = {
+        RecordID: recordId,
+        StudentUserID: AppState.selectedStudentId,
+        SectionNo: sectionNo,
+        SectionTitle: sectionTitle,
+        SubsectionNo: sectionNo + 0.1,
+        SubsectionTitle: document.getElementById('subTitle').value,
+        Field1: document.getElementById('field1').value,
+        Field2: document.getElementById('field2').value,
+        Field3: document.getElementById('field3').value,
+        Field4: document.getElementById('field4').value,
+        LongText: document.getElementById('longText').value,
+        CreatedBy: AppState.currentUser.UserID
+      };
+
+      callServer('savePortfolioRecord', payload, function(res) {
+        showToast("Portfolio record successfully recorded.");
+        closeModal();
+        loadAppData();
+      });
+    }
+
+    function deleteRecord(recordId) {
+      if (confirm("Are you sure you want to delete this portfolio record?")) {
+        callServer('deletePortfolioRecord', { recordId: recordId }, function(res) {
+          showToast("Portfolio record successfully removed.");
+          loadAppData();
+        });
+      }
+    }
+
+    // ============================================================
+    // EVIDENCE UPLOAD PAGE
+    // ============================================================
+
+    function renderEvidenceUpload(target) {
+      const studentId = AppState.selectedStudentId;
+      const evidenceList = AppState.data.evidence.filter(e => e.StudentUserID === studentId);
+
+      target.innerHTML = `
+        <div class="card">
+          <h2>📎 Upload Evidence Documents</h2>
+          <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1.5rem;">
+            Upload supporting documents (PDF, images, etc.) to your personal Google Drive folder. 
+            Each student's files are stored in a separate folder.
+          </p>
+
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;">📄</div>
+            <p style="font-weight:600; color:var(--text-dark);">Click to select files or drag & drop here</p>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">Supported: PDF, Images, Documents (Max 7MB per file)</p>
+            <input type="file" id="fileInput" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onchange="handleFileSelect(event)">
+          </div>
+
+          <div id="uploadPreview" style="margin-top:1rem;"></div>
+
+          <div class="form-group" style="margin-top:1rem;">
+            <label>Description / Notes for this evidence</label>
+            <input type="text" id="evidenceDescription" placeholder="e.g., TOEFL Score Report, Conference Poster, etc.">
+          </div>
+          <div class="form-group">
+            <label>Related Section</label>
+            <select id="evidenceSection" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-color); font-family:var(--font-main);">
+              <option value="">-- General --</option>
+              <option value="1">Section 1: Student Profile</option>
+              <option value="3">Section 3: English Language</option>
+              <option value="5">Section 5: Research Progress</option>
+              <option value="6">Section 6: Research Hours</option>
+              <option value="7">Section 7: Scholarly Output</option>
+              <option value="11">Section 11: Evidence</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="uploadBtn" onclick="performUpload()" disabled>📤 Upload File</button>
+        </div>
+
+        <div class="card">
+          <h2>📋 Previously Uploaded Evidence (${evidenceList.length} files)</h2>
+          ${evidenceList.length === 0 ? `
+            <p style="text-align:center; color:var(--text-muted); padding:2rem; border:1px dashed var(--border-color); border-radius:8px;">No evidence files uploaded yet.</p>
+          ` : `
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+                <thead>
+                  <tr style="background:#F8FAFC; border-bottom:2px solid var(--border-color); text-align:left;">
+                    <th style="padding:0.75rem;">File Name</th>
+                    <th style="padding:0.75rem;">Section</th>
+                    <th style="padding:0.75rem;">Description</th>
+                    <th style="padding:0.75rem;">Uploaded</th>
+                    <th style="padding:0.75rem;">Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${evidenceList.map(ev => `
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                      <td style="padding:0.75rem; font-weight:600;">${ev.FileName}</td>
+                      <td style="padding:0.75rem;">Sec ${ev.RelatedSection || '-'}</td>
+                      <td style="padding:0.75rem; color:var(--text-muted);">${ev.Description || '-'}</td>
+                      <td style="padding:0.75rem; font-size:0.8rem;">${ev.UploadedAt ? new Date(ev.UploadedAt).toLocaleDateString() : '-'}</td>
+                      <td style="padding:0.75rem;">
+                        ${ev.FileURL ? '<a href="' + ev.FileURL + '" target="_blank" style="color:var(--primary-red); font-weight:600;">Open ↗</a>' : '-'}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+      `;
+
+      // Setup drag & drop
+      const zone = document.getElementById('uploadZone');
+      zone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+      zone.addEventListener('dragleave', function() {
+        zone.classList.remove('dragover');
+      });
+      zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          document.getElementById('fileInput').files = e.dataTransfer.files;
+          handleFileSelect({ target: { files: e.dataTransfer.files } });
+        }
+      });
+    }
+
+    let selectedFile = null;
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Check file size (7MB limit for base64 → ~5.25MB actual)
+      if (file.size > 7 * 1024 * 1024) {
+        alert('File too large! Maximum size is 7MB.');
+        return;
+      }
+
+      selectedFile = file;
+      document.getElementById('uploadPreview').innerHTML = `
+        <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:1rem; display:flex; align-items:center; gap:1rem;">
+          <span style="font-size:1.5rem;">📄</span>
+          <div>
+            <p style="font-weight:600;">${file.name}</p>
+            <p style="font-size:0.8rem; color:var(--text-muted);">${(file.size / 1024).toFixed(1)} KB • ${file.type}</p>
+          </div>
+        </div>
+      `;
+      document.getElementById('uploadBtn').disabled = false;
+    }
+
+    function performUpload() {
+      if (!selectedFile) {
+        alert('Please select a file first.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Extract base64 from data URL
+        const base64 = e.target.result.split(',')[1];
+        const description = document.getElementById('evidenceDescription').value;
+        const section = document.getElementById('evidenceSection').value;
+
+        callServer('uploadEvidence', {
+          base64Data: base64,
+          fileName: selectedFile.name,
+          mimeType: selectedFile.type,
+          metadata: {
+            StudentUserID: AppState.selectedStudentId,
+            RelatedSection: section,
+            Description: description,
+            UploadedBy: AppState.currentUser.UserID
+          }
+        }, function(res) {
+          showToast('✅ File uploaded successfully to your personal folder!');
+          selectedFile = null;
+          loadAppData();
+        }, function(err) {
+          alert('Upload failed: ' + err);
+        });
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+
+    // ============================================================
+    // ADVISOR WORKSPACE
+    // ============================================================
+
+    function renderAdvisorWorkspace(target) {
+      const students = AppState.data.users.filter(u => u.Role === 'Student');
+
+      let listHtml = '';
+      students.forEach(s => {
+        const isSelected = AppState.selectedStudentId === s.UserID;
+        listHtml += `
+          <div class="chat-thread-item ${isSelected ? 'active' : ''}" onclick="selectWorkspaceStudent('${s.UserID}')">
+            <img src="${s.PhotoURL || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Student'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+            <div>
+              <p style="font-weight:600; font-size:0.9rem;">${s.FullName}</p>
+              <span style="font-size:0.75rem; color:var(--text-muted);">ID: ${s.StudentID || 'N/A'}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      const selectedStudent = AppState.data.users.find(u => u.UserID === AppState.selectedStudentId);
+      const comments = AppState.data.advisorComments.filter(c => c.StudentUserID === AppState.selectedStudentId);
+
+      target.innerHTML = `
+        <h2 style="font-size:1.5rem; color:var(--primary-red); font-weight:700; margin-bottom:1.5rem;">Advisor Tracking & Sign-off Workspace</h2>
+        
+        <div class="chat-layout">
+          <div class="chat-sidebar">
+            <div style="padding:1rem; border-bottom:1px solid var(--border-color); background:var(--bg-cream); font-weight:bold;">
+              Advisees Under Your Care
+            </div>
+            ${listHtml}
+          </div>
+
+          <div class="card" style="background:white; overflow-y:auto; padding:1.5rem;">
+            <h2>Advisor & Co-Advisor Review Matrix</h2>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem;">
+              Provide scholarly advice, comment logs, and official endorsement for <strong>${selectedStudent ? selectedStudent.FullName : 'N/A'}</strong>.
+            </p>
+
+            <div style="background:#F8FAFC; padding:1.25rem; border-radius:8px; margin-bottom:1.5rem; border:1px solid var(--border-color);">
+              <h3 style="font-size:1rem; font-weight:bold; color:var(--primary-red); margin-bottom:0.75rem;">Submit Review Evaluation</h3>
+              <form id="advisorCommentForm" onsubmit="saveCommentForm(event)">
+                <div class="form-group">
+                  <label>Review comments & academic guidance notes</label>
+                  <textarea id="advisorCommentText" rows="3" required placeholder="Describe progress, suggestions, or publishing tips"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Recommendation Status</label>
+                  <select id="advisorRecommendation" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-color); font-family:var(--font-main);">
+                    <option value="Approved to proceed">Approved to proceed to next review cycle</option>
+                    <option value="Approved with modifications">Approved with minor modifications required</option>
+                    <option value="Requires detailed update">Requires immediate progress update</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Evaluation Signature</button>
+              </form>
+            </div>
+
+            <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-dark); margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">Review & Feedback History</h3>
+            <div id="commentsHistory">
+              ${comments.length === 0 ? `
+                <p style="font-size:0.875rem; color:var(--text-muted); text-align:center; padding:1rem;">No prior advisory feedback recorded.</p>
+              ` : ''}
+              ${comments.map(c => `
+                <div style="background:#FFFDF9; border:1px solid var(--border-color); border-radius:8px; padding:1rem; margin-bottom:0.75rem; border-left:4px solid var(--primary-gold);">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; font-size:0.8rem;">
+                    <strong>Review Year: ${c.ReviewYear}</strong>
+                    <span style="color:var(--text-muted);">${c.CreatedAt ? new Date(c.CreatedAt).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  <p style="font-size:0.9rem; color:var(--text-dark); margin-bottom:0.5rem;">${c.CommentText}</p>
+                  <span style="font-size:0.8rem; background:var(--bg-cream); padding:0.25rem 0.5rem; border-radius:4px; font-weight:600;">Status: ${c.Recommendation}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectWorkspaceStudent(studentId) {
+      AppState.selectedStudentId = studentId;
+      renderPageContent();
+    }
+
+    function saveCommentForm(e) {
+      e.preventDefault();
+      const text = document.getElementById('advisorCommentText').value;
+      const rec = document.getElementById('advisorRecommendation').value;
+
+      const payload = {
+        StudentUserID: AppState.selectedStudentId,
+        AdvisorUserID: AppState.currentUser.UserID,
+        ReviewYear: new Date().getFullYear().toString(),
+        CommentText: text,
+        Recommendation: rec,
+        Status: 'Submitted'
+      };
+
+      callServer('saveAdvisorComment', payload, function(res) {
+        showToast("Review evaluation added to Student's Portfolio.");
+        loadAppData();
+      });
+    }
+
+    // ============================================================
+    // NOTIFICATIONS ENGINE
+    // ============================================================
+
+    function renderNotify(target) {
+      const notifications = AppState.data.notifications;
+
+      target.innerHTML = `
+        <div class="card">
+          <h2>Advisory Broadcasting and Alerts</h2>
+          
+          ${AppState.currentUser.Role !== 'Student' ? `
+            <div style="background:#FFFBEB; padding:1.25rem; border-radius:12px; border:1px solid var(--primary-gold); margin-bottom:2rem;">
+              <h3 style="font-size:1rem; font-weight:bold; color:var(--primary-red); margin-bottom:0.75rem;">Broadcast Alert Notification</h3>
+              <form id="broadcastForm" onsubmit="sendBroadcast(event)">
+                <div class="form-group">
+                  <label>Select Recipient Student</label>
+                  <select id="broadcastReceiver" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--border-color); font-family:var(--font-main);">
+                    ${AppState.data.users.filter(u => u.Role === 'Student').map(s => '<option value="' + s.UserID + '">' + s.FullName + ' (' + (s.StudentID || 'N/A') + ')</option>').join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Notification Alert Title</label>
+                  <input type="text" id="broadcastTitle" required placeholder="e.g., Scheduled dissertation review seminar">
+                </div>
+                <div class="form-group">
+                  <label>Broadcasting message content</label>
+                  <textarea id="broadcastMsg" rows="3" required placeholder="Enter full details of the schedule or required documentation"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Notification Broadcast</button>
+              </form>
+            </div>
+          ` : ''}
+
+          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-dark); margin-bottom:1rem;">Your Incoming Notification Feed</h3>
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            ${notifications.length === 0 ? `
+              <p style="text-align:center; color:var(--text-muted); padding:3rem; border:1px dashed var(--border-color); border-radius:8px;">No alert notifications have been received.</p>
+            ` : ''}
+            ${notifications.map(n => `
+              <div style="background:${String(n.IsRead) === 'FALSE' ? '#FFFDF5' : 'white'}; border:1px solid var(--border-color); border-left: 4px solid ${String(n.IsRead) === 'FALSE' ? 'var(--primary-red)' : '#94A3B8'}; border-radius:8px; padding:1.25rem; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <h4 style="font-weight:700; color:var(--text-dark);">${n.Title}</h4>
+                  <p style="font-size:0.9rem; margin-top:0.25rem;">${n.Message}</p>
+                  <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:0.5rem;">Sent: ${n.CreatedAt ? new Date(n.CreatedAt).toLocaleString() : 'N/A'}</span>
+                </div>
+                ${String(n.IsRead) === 'FALSE' && n.ReceiverUserID === AppState.currentUser.UserID ? `
+                  <button class="btn btn-secondary" style="padding:0.35rem 0.65rem; font-size:0.75rem;" onclick="markAsRead('${n.NotificationID}')">Mark as read</button>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function sendBroadcast(e) {
+      e.preventDefault();
+      const rec = document.getElementById('broadcastReceiver').value;
+      const title = document.getElementById('broadcastTitle').value;
+      const msg = document.getElementById('broadcastMsg').value;
+
+      callServer('sendNotification', {
+        SenderUserID: AppState.currentUser.UserID,
+        ReceiverUserID: rec,
+        Title: title,
+        Message: msg
+      }, function(res) {
+        showToast("Advisory notification successfully broadcasted.");
+        document.getElementById('broadcastForm').reset();
+        loadAppData();
+      });
+    }
+
+    function markAsRead(notificationId) {
+      callServer('markNotificationRead', { notificationId: notificationId }, function(res) {
+        showToast("Notification marked as read.");
+        loadAppData();
+      });
+    }
+
+    // ============================================================
+    // CHAT MODULE
+    // ============================================================
+
+    function renderChat(target) {
+      const role = AppState.currentUser.Role;
+      const filteredUsers = AppState.data.users.filter(u => u.UserID !== AppState.currentUser.UserID);
+      
+      if (!AppState.activeChatThreadId && filteredUsers.length > 0) {
+        AppState.activeChatThreadId = filteredUsers[0].UserID;
+      }
+
+      const activePeer = AppState.data.users.find(u => u.UserID === AppState.activeChatThreadId);
+      
+      if (!activePeer) {
+        target.innerHTML = '<div class="card"><p>No chat contacts available.</p></div>';
+        return;
+      }
+
+      const messages = AppState.data.chatMessages.filter(
+        m => (m.SenderUserID === AppState.currentUser.UserID && m.ReceiverUserID === activePeer.UserID) ||
+             (m.SenderUserID === activePeer.UserID && m.ReceiverUserID === AppState.currentUser.UserID)
+      );
+
+      let peerListHtml = '';
+      filteredUsers.forEach(u => {
+        const isActive = AppState.activeChatThreadId === u.UserID;
+        peerListHtml += `
+          <div class="chat-thread-item ${isActive ? 'active' : ''}" onclick="selectChatPeer('${u.UserID}')">
+            <img src="${u.PhotoURL || 'https://api.dicebear.com/7.x/adventurer/svg?seed=User'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+            <div>
+              <p style="font-weight:600; font-size:0.85rem; margin:0;">${u.FullName}</p>
+              <span style="font-size:0.7rem; color:var(--text-muted);">${u.Role}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      target.innerHTML = `
+        <div class="chat-layout">
+          <div class="chat-sidebar">
+            <div style="padding:1rem; border-bottom:1px solid var(--border-color); background:var(--bg-cream); font-weight:bold; font-size:0.9rem;">
+              Portfolio Chat Contacts
+            </div>
+            ${peerListHtml}
+          </div>
+
+          <div class="chat-main">
+            <div style="padding:1rem; border-bottom:1px solid var(--border-color); display:flex; align-items:center; gap:0.75rem; background:#FAFBFD;">
+              <img src="${activePeer.PhotoURL || 'https://api.dicebear.com/7.x/adventurer/svg?seed=User'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+              <div>
+                <h4 style="font-weight:700; font-size:0.95rem; color:var(--text-dark); margin:0;">${activePeer.FullName}</h4>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Role: ${activePeer.Role} • ${activePeer.Affiliation || 'PSU Nursing'}</p>
+              </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessagesBox">
+              ${messages.length === 0 ? `
+                <div style="margin:auto; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+                  No previous chat messages. Type below to begin.
+                </div>
+              ` : ''}
+              ${messages.map(m => {
+                const isSent = m.SenderUserID === AppState.currentUser.UserID;
+                return `
+                  <div class="chat-bubble ${isSent ? 'sent' : 'received'}">
+                    <p>${m.MessageText}</p>
+                    <span style="font-size:0.65rem; color: ${isSent ? '#FFECEC' : 'var(--text-muted)'}; display:block; text-align:right; margin-top:0.25rem;">
+                      ${m.CreatedAt ? new Date(m.CreatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <form class="chat-input-area" onsubmit="handleSendChat(event)">
+              <input type="text" id="chatInputField" required placeholder="Type scholarly note or question here..." style="flex:1; padding:0.6rem; border-radius:8px; border:1px solid var(--border-color); font-family:var(--font-main);">
+              <button type="submit" class="btn btn-primary">Send</button>
+            </form>
+          </div>
+        </div>
+      `;
+
+      const box = document.getElementById('chatMessagesBox');
+      if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    function selectChatPeer(userId) {
+      AppState.activeChatThreadId = userId;
+      renderPageContent();
+    }
+
+    function handleSendChat(e) {
+      e.preventDefault();
+      const input = document.getElementById('chatInputField');
+      const text = input.value;
+      if (!text.trim()) return;
+
+      const activePeer = AppState.data.users.find(u => u.UserID === AppState.activeChatThreadId);
+      
+      callServer('sendChatMessage', {
+        SenderUserID: AppState.currentUser.UserID,
+        ReceiverUserID: activePeer.UserID,
+        StudentUserID: AppState.currentUser.Role === 'Student' ? AppState.currentUser.UserID : activePeer.UserID,
+        MessageText: text
+      }, function(res) {
+        input.value = '';
+        loadAppData();
+      });
+    }
+
+    // ============================================================
+    // PRINT REPORT COMPILER
+    // ============================================================
+
+    function renderReport(target) {
+      const studentId = AppState.selectedStudentId;
+      const student = AppState.data.users.find(u => u.UserID === studentId) || {};
+      const records = AppState.data.portfolioRecords.filter(r => r.StudentUserID === studentId);
+      const comments = AppState.data.advisorComments.filter(c => c.StudentUserID === studentId);
+      const hours = AppState.data.researchHours.filter(h => h.StudentUserID === studentId);
+      const totalHours = hours.reduce((sum, h) => sum + Number(h.Hours || 0), 0);
+      const profile = AppState.data.studentProfiles.find(p => p.StudentUserID === studentId) || {};
+
+      // Find advisor name
+      const advisorUser = AppState.data.users.find(u => u.UserID === student.MajorAdvisorID);
+      const advisorName = advisorUser ? advisorUser.FullName : 'N/A';
+
+      target.innerHTML = `
+        <div class="no-print" style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 style="font-size:1.5rem; color:var(--primary-red); font-weight:700;">Compile Portfolio Report</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Review academic dossier aligned to standard PhD Nursing formats before printing</p>
+          </div>
+          <button class="btn btn-primary" onclick="window.print()">🖨️ Print Portfolio (A4 PDF)</button>
+        </div>
+
+        <div class="print-report-container">
+          <!-- COVER PAGE -->
+          <div style="text-align:center; padding:5rem 0; border:2px solid var(--primary-gold); border-radius:12px; background:var(--bg-cream); margin-bottom:4rem;">
+            <svg style="width:80px; height:80px; fill:var(--primary-red); margin-bottom:1.5rem;" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3M5.47 12.5l-2.47-1.35V17c0 1.66 4 3 9 3s9-1.34 9-3v-5.85l-2.47 1.35c-1.5 1-4.13 1.5-6.53 1.5s-5.03-.5-6.53-1.5z"/></svg>
+            <h1 style="font-size:2.25rem; font-weight:800; color:var(--primary-red); letter-spacing:-0.05em; margin-bottom:1rem;">Doctoral Student Portfolio Dossier</h1>
+            <p style="font-size:1.15rem; font-weight:600; color:var(--text-dark);">${student.University || 'Prince of Songkla University'}</p>
+            <p style="font-size:1rem; color:var(--text-muted);">${student.Faculty || 'Faculty of Nursing'}</p>
+            
+            <div style="max-width:500px; margin:4rem auto 0; text-align:left; border-top:1px solid var(--border-color); padding-top:2rem; font-size:0.95rem; line-height:1.8;">
+              <p><strong>Student Name:</strong> ${student.FullName || 'N/A'}</p>
+              <p><strong>Student ID:</strong> ${student.StudentID || 'N/A'}</p>
+              <p><strong>Degree Track:</strong> ${student.Program || 'N/A'}</p>
+              <p><strong>Admission Year:</strong> ${student.AdmissionYear || 'N/A'}</p>
+              <p><strong>Major Scholar Advisor:</strong> ${advisorName}</p>
+            </div>
+          </div>
+
+          <!-- PORTFOLIO SECTIONS -->
+          <div class="page-break">
+            <h2 style="font-size:1.5rem; color:var(--primary-red); margin-bottom:1.5rem; border-bottom:2px solid var(--primary-red); padding-bottom:0.5rem;">Section 1. Student Profile & Bio</h2>
+            <div style="background:#FAFBFD; padding:1.25rem; border-radius:8px; border:1px solid var(--border-color); margin-bottom:1.5rem;">
+              <p><strong>Research Goals:</strong> ${profile.GoalsForDoctoralStudy || 'Pending'}</p>
+              <p style="margin-top:0.75rem;"><strong>Specialization Focus:</strong> ${student.ResearchInterests || 'Pending'}</p>
+            </div>
+          </div>
+
+          <div class="page-break" style="margin-top:2.5rem;">
+            <h2 style="font-size:1.5rem; color:var(--primary-red); margin-bottom:1.5rem; border-bottom:2px solid var(--primary-red); padding-bottom:0.5rem;">Section 2. Registered Portfolio Milestones & Achievements</h2>
+            ${records.length === 0 ? `
+              <p style="font-size:0.9rem; color:var(--text-muted);">No logs documented in active section.</p>
+            ` : records.map(r => `
+              <div style="padding:1rem; border-bottom:1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:0.95rem;">
+                  <span>Sec ${r.SectionNo} - ${r.SubsectionTitle}</span>
+                  <span style="color:var(--primary-red);">${r.Field1}</span>
+                </div>
+                <p style="font-size:0.875rem; color:var(--text-muted); margin-top:0.25rem;">${r.Field2 || ''} • Year: ${r.Field3 || ''}</p>
+                ${r.LongText ? '<p style="font-size:0.9rem; margin-top:0.5rem; color:var(--text-dark);">' + r.LongText + '</p>' : ''}
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="page-break" style="margin-top:2.5rem;">
+            <h2 style="font-size:1.5rem; color:var(--primary-red); margin-bottom:1.5rem; border-bottom:2px solid var(--primary-red); padding-bottom:0.5rem;">Section 6. Research Experience Log</h2>
+            <div style="margin-bottom:1rem; font-weight:bold; font-size:1rem; color:var(--text-dark);">
+              Total Experience Logged: <span style="color:var(--primary-red);">${totalHours} / 180 Hours</span>
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+              <thead>
+                <tr style="background:#FAFBFD; border-bottom:2px solid var(--border-color); text-align:left;">
+                  <th style="padding:0.75rem;">Date</th>
+                  <th style="padding:0.75rem;">Scholarly Activity</th>
+                  <th style="padding:0.75rem; text-align:right;">Hours Logged</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hours.map(h => `
+                  <tr style="border-bottom:1px solid var(--border-color);">
+                    <td style="padding:0.75rem;">${h.Date}</td>
+                    <td style="padding:0.75rem;">${h.ResearchActivity}</td>
+                    <td style="padding:0.75rem; text-align:right; font-weight:600;">${h.Hours} hrs</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="page-break" style="margin-top:2.5rem;">
+            <h2 style="font-size:1.5rem; color:var(--primary-red); margin-bottom:1.5rem; border-bottom:2px solid var(--primary-red); padding-bottom:0.5rem;">Section 15. Advisor Review Endorsement Summary</h2>
+            ${comments.length === 0 ? `
+              <p style="font-size:0.9rem; color:var(--text-muted);">No formal advisor evaluations recorded yet.</p>
+            ` : comments.map(c => `
+              <div style="background:#FAFBFD; border:1px solid var(--border-color); padding:1.25rem; border-radius:8px; margin-bottom:1rem;">
+                <p style="font-size:0.95rem; line-height:1.6;">"${c.CommentText}"</p>
+                <div style="display:flex; justify-content:space-between; margin-top:1rem; font-size:0.85rem; font-weight:bold; color:var(--primary-red);">
+                  <span>Status: ${c.Recommendation}</span>
+                  <span>Review Date: ${c.CreatedAt ? new Date(c.CreatedAt).toLocaleDateString() : 'N/A'}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // ADMIN PANEL
+    // ============================================================
+
+    function renderAdmin(target) {
+      target.innerHTML = `
+        <div class="card">
+          <h2>Admin Setup & Configuration Console</h2>
+          <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem;">
+            Deploy, initialize database spreadsheet mappings, insert template records, and manage users.
+          </p>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+            <div style="background:#FFFDF5; border:1px solid var(--primary-gold); padding:1.25rem; border-radius:12px;">
+              <h3 style="font-size:1rem; font-weight:bold; color:var(--primary-red); margin-bottom:0.5rem;">Sheet DB Initialization</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Create spreadsheet schema and initialize all 13 necessary tables.</p>
+              <button class="btn btn-gold" onclick="triggerDbSetup()">⚙️ Execute setupDatabase()</button>
+            </div>
+
+            <div style="background:#FFF5F5; border:1px solid var(--primary-red); padding:1.25rem; border-radius:12px;">
+              <h3 style="font-size:1rem; font-weight:bold; color:var(--primary-red); margin-bottom:0.5rem;">Preload Sample Portfolio</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Fills Sheets with realistic nursing scholars profile info.</p>
+              <button class="btn btn-primary" onclick="triggerSampleSetup()">🚀 Execute setupExampleData()</button>
+            </div>
+          </div>
+
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:1.25rem; border-radius:12px; margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem; font-weight:bold; color:#166534; margin-bottom:0.5rem;">📡 API Connection Info</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">Current Web App URL:</p>
+            <code style="font-size:0.8rem; background:#E2E8F0; padding:0.35rem 0.75rem; border-radius:4px; word-break:break-all; display:block;">${GAS_WEB_APP_URL}</code>
+            <button class="btn btn-secondary" style="margin-top:0.75rem; font-size:0.75rem; padding:0.35rem 0.75rem;" onclick="localStorage.removeItem('doctoral_gas_url'); GAS_WEB_APP_URL=''; renderSetupPage();">🔄 Change API URL</button>
+          </div>
+
+          <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
+            <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-dark); margin-bottom:1rem;">Active User Accounts Registry</h3>
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+                <thead>
+                  <tr style="background:#F8FAFC; border-bottom:2px solid var(--border-color); text-align:left; font-weight:bold;">
+                    <th style="padding:0.75rem;">Name</th>
+                    <th style="padding:0.75rem;">Email</th>
+                    <th style="padding:0.75rem;">Role</th>
+                    <th style="padding:0.75rem;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${AppState.data.users.map(u => `
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                      <td style="padding:0.75rem; font-weight:600;">${u.FullName}</td>
+                      <td style="padding:0.75rem;">${u.Email}</td>
+                      <td style="padding:0.75rem; color:var(--primary-red); font-weight:600;">${u.Role}</td>
+                      <td style="padding:0.75rem;"><span style="background:#DCFCE7; color:#166534; padding:0.25rem 0.5rem; border-radius:4px; font-weight:bold; font-size:0.75rem;">${u.Status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function triggerDbSetup() {
+      callServer('setupDatabase', {}, function(res) {
+        showToast("Database and folder structures configured successfully!");
+        if (res.spreadsheetUrl) {
+          alert('Database created!\nSpreadsheet URL: ' + res.spreadsheetUrl + '\nDrive Evidence Folder: ' + res.folderUrl);
+        }
+      });
+    }
+
+    function triggerSampleSetup() {
+      callServer('setupExampleData', { force: true }, function(res) {
+        showToast("Academic nursing scholars preloaded successfully!");
+        loadAppData();
+      });
+    }
+  </script>
+</body>
+</html>
