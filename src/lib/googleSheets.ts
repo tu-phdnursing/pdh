@@ -931,6 +931,20 @@ export function resolveFileUrl(url: string | null | undefined): string {
   return url;
 }
 
+export function isImageFile(fileUrlOrObj: string | { name?: string; url?: string } | null | undefined): boolean {
+  if (!fileUrlOrObj) return false;
+  let url = typeof fileUrlOrObj === 'string' ? fileUrlOrObj : (fileUrlOrObj.url || '');
+  let name = typeof fileUrlOrObj === 'object' ? (fileUrlOrObj.name || '') : '';
+  const resolved = resolveFileUrl(url);
+  
+  if (resolved.startsWith('data:image/')) return true;
+  if (resolved.startsWith('data:application/pdf')) return false;
+  if (/\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(name)) return true;
+  if (/\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(url)) return true;
+  if (url.includes('images.unsplash.com') || url.includes('googleusercontent.com')) return true;
+  return false;
+}
+
 export function resolvePhotoUrl(url: string | null | undefined, defaultUrl: string = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80'): string {
   if (!url) return defaultUrl;
   if (url.startsWith('LOCAL_FILE_')) {
