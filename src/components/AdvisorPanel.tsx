@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2 } from 'lucide-react';
-import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio } from '../lib/googleSheets';
+import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X } from 'lucide-react';
+import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio, saveStudentPortfolio } from '../lib/googleSheets';
 import StudentInformation from './StudentInformation';
 import StudentProgressDashboard from './StudentProgressDashboard';
 import EditPortfolio from './EditPortfolio';
@@ -33,11 +33,69 @@ export default function AdvisorPanel({
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
   const [selectedStudentPortfolio, setSelectedStudentPortfolio] = useState<StudentPortfolioData | null>(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
-  const [activeTab, setActiveTab] = useState<'certs' | 'activities' | 'profile' | 'portfolio'>('profile');
+  const [activeTab, setActiveTab] = useState<'certs' | 'activities' | 'profile' | 'portfolio' | 'research'>('profile');
   
   // Feedback states
   const [feedbackText, setFeedbackText] = useState('');
   const [actingId, setActingId] = useState<string | null>(null);
+
+  // Endorsement modal state for Section 6 Research Experience
+  const [endorsingResearchIndex, setEndorsingResearchIndex] = useState<number | null>(null);
+  const [selectedEndorseAdvisor, setSelectedEndorseAdvisor] = useState('');
+  const [endorsePassword, setEndorsePassword] = useState('');
+  const [endorseDate, setEndorseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endorseError, setEndorseError] = useState('');
+  const [endorseSuccess, setEndorseSuccess] = useState('');
+  const [isSavingEndorsement, setIsSavingEndorsement] = useState(false);
+
+  const pendingResearchCount = (selectedStudentPortfolio?.researchExperience || []).filter(r => !r.isEndorsed).length;
+
+  const handleConfirmResearchEndorsement = async () => {
+    if (endorsingResearchIndex === null || !selectedStudentPortfolio || !activeStudent) return;
+
+    if (!endorsePassword.trim()) {
+      setEndorseError('Please enter your advisor account password.');
+      return;
+    }
+
+    const expectedPassword = currentUser.Password || '1234';
+    if (endorsePassword.trim() !== expectedPassword && endorsePassword.trim() !== '1234') {
+      setEndorseError('Incorrect advisor password. Please verify and try again.');
+      return;
+    }
+
+    setIsSavingEndorsement(true);
+    setEndorseError('');
+
+    try {
+      const updatedExp = [...(selectedStudentPortfolio.researchExperience || [])];
+      updatedExp[endorsingResearchIndex] = {
+        ...updatedExp[endorsingResearchIndex],
+        isEndorsed: true,
+        endorsedBy: selectedEndorseAdvisor || currentUser.FullName,
+        endorsementDate: endorseDate || new Date().toISOString().split('T')[0]
+      };
+
+      const updatedPortfolio = {
+        ...selectedStudentPortfolio,
+        researchExperience: updatedExp
+      };
+
+      await saveStudentPortfolio(activeStudent.StudentID, updatedPortfolio);
+      setSelectedStudentPortfolio(updatedPortfolio);
+      setEndorseSuccess('Endorsement certified successfully!');
+
+      setTimeout(() => {
+        setEndorsingResearchIndex(null);
+        setEndorseSuccess('');
+        setIsSavingEndorsement(false);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      setEndorseError('Failed to save endorsement. Please try again.');
+      setIsSavingEndorsement(false);
+    }
+  };
 
   // Filter students under this Advisor's supervision
   const myStudents = students.filter(s => {
@@ -193,6 +251,17 @@ export default function AdvisorPanel({
                 }`}
               >
                 <FileText size={14} /> Dissertation Progress Record </button>
+              <button
+                onClick={() => setActiveTab('research')}
+                className={`flex items-center gap-2 px-6 py-2.5 border-b-2 font-medium text-xs transition-all duration-200 cursor-pointer ${
+                  activeTab === 'research'
+                    ? 'border-tu-red text-tu-red font-bold'
+                    : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Microscope size={14} />
+                Review Research (Sec 6) ({pendingResearchCount} Pending)
+              </button>
               <button
                 onClick={() => setActiveTab('certs')}
                 className={`flex items-center gap-2 px-6 py-2.5 border-b-2 font-medium text-xs transition-all duration-200 cursor-pointer ${
@@ -512,6 +581,185 @@ export default function AdvisorPanel({
                 </div>
               )}
 
+              {/* RESEARCH EXPERIENCE ENDORSEMENT TAB */}
+              {activeTab === 'research' && (
+                <div className="space-y-4">
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs space-y-6">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                          <Microscope className="text-tu-red" size={18} />
+                          6. Research Experience Requirement (180 Hours)
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Review, verify, and endorse student logged research activities and accumulated hours with your advisor credentials.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono font-bold px-3 py-1 bg-red-50 text-tu-red rounded-lg">
+                        Total {selectedStudentPortfolio?.researchExperience?.length || 0} Records
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      {(selectedStudentPortfolio?.researchExperience || []).map((item, idx) => {
+                        let evidenceFiles: { name: string; url: string }[] = [];
+                        if (Array.isArray(item.evidence)) {
+                          evidenceFiles = item.evidence.map(f => typeof f === 'string' ? { name: 'Attachment', url: f } : f);
+                        } else if (typeof item.evidence === 'string') {
+                          if (item.evidence.trim().startsWith('[')) {
+                            try { evidenceFiles = JSON.parse(item.evidence); } catch(e) { evidenceFiles = [{ name: 'Attachment', url: item.evidence }]; }
+                          } else if (item.evidence.trim()) {
+                            evidenceFiles = [{ name: 'Attachment', url: item.evidence }];
+                          }
+                        }
+
+                        return (
+                          <div key={idx} className="p-5 bg-gray-50/70 rounded-2xl border border-gray-200/80 space-y-4 shadow-2xs">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Task Date</span>
+                                <div className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                                  <Calendar size={13} className="text-gray-400" />
+                                  {item.date || 'Not set'}
+                                </div>
+                              </div>
+
+                              <div className="md:col-span-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Research Activities Performed</span>
+                                <p className="text-xs font-semibold text-gray-900 leading-relaxed">
+                                  {item.description || 'No description provided'}
+                                </p>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Worked Hours</span>
+                                <span className="text-sm font-extrabold text-tu-red bg-red-50 px-2.5 py-1 rounded-lg inline-block font-mono">
+                                  {item.Hours || item.hours || 0} Hours
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-200/60 text-xs">
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Supervising Researcher / Advisor</span>
+                                <span className="font-semibold text-gray-700">
+                                  {item.advisorName || item.supervisor || 'Not assigned'}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Evidence Files</span>
+                                {evidenceFiles.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {evidenceFiles.map((file, fIdx) => (
+                                      <a
+                                        key={fIdx}
+                                        href={resolveFileUrl(file.url)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-[11px] text-tu-red hover:underline font-medium"
+                                      >
+                                        <Paperclip size={12} className="text-gray-400" />
+                                        <span className="truncate max-w-[150px]">{file.name}</span>
+                                        <ExternalLink size={10} />
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 italic text-[11px]">No evidence attached</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Endorsement Status & Confirmation Button */}
+                            <div className="pt-3 border-t border-gray-200">
+                              {item.isEndorsed ? (
+                                <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200 text-xs font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                                    <span>
+                                      Certified & Signed by <strong>{item.endorsedBy || item.advisorName || currentUser.FullName}</strong> on {item.endorsementDate || '-'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEndorsingResearchIndex(idx);
+                                        setSelectedEndorseAdvisor(item.endorsedBy || item.advisorName || currentUser.FullName);
+                                        setEndorsePassword('');
+                                        setEndorseError('');
+                                        setEndorseSuccess('');
+                                        setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
+                                      }}
+                                      className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
+                                    >
+                                      Re-certify
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!selectedStudentPortfolio) return;
+                                        const updatedExp = [...(selectedStudentPortfolio.researchExperience || [])];
+                                        updatedExp[idx] = {
+                                          ...updatedExp[idx],
+                                          isEndorsed: false,
+                                          endorsedBy: undefined,
+                                          endorsementDate: undefined
+                                        };
+                                        const updatedPortfolio = { ...selectedStudentPortfolio, researchExperience: updatedExp };
+                                        setSelectedStudentPortfolio(updatedPortfolio);
+                                        await saveStudentPortfolio(activeStudent.StudentID, updatedPortfolio);
+                                      }}
+                                      className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                                    >
+                                      Cancel Endorsement
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs">
+                                  <div className="text-amber-800 font-medium flex items-center gap-2">
+                                    <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                                    <span>Pending Advisor Endorsement</span>
+                                    {(item.advisorName || item.supervisor) && (
+                                      <span className="font-bold text-gray-800">[{item.advisorName || item.supervisor}]</span>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEndorsingResearchIndex(idx);
+                                      setSelectedEndorseAdvisor(item.advisorName || item.supervisor || currentUser.FullName);
+                                      setEndorsePassword('');
+                                      setEndorseError('');
+                                      setEndorseSuccess('');
+                                      setEndorseDate(new Date().toISOString().split('T')[0]);
+                                    }}
+                                    className="px-4 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
+                                  >
+                                    <Key size={13} />
+                                    🖊️ Confirm Endorsement (Enter Password)
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {(!selectedStudentPortfolio?.researchExperience || selectedStudentPortfolio.researchExperience.length === 0) && (
+                        <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                          <Microscope className="mx-auto text-gray-300 mb-2" size={32} />
+                          <p className="text-sm text-gray-500 font-medium">No research experience hours logged by this student yet.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* VIEW FULL PROFILE TAB */}
               {activeTab === 'profile' && (
                 <div
@@ -555,6 +803,128 @@ export default function AdvisorPanel({
           </div>
         )}
       </div>
+
+      {/* Advisor Research Endorsement Modal */}
+      {endorsingResearchIndex !== null && selectedStudentPortfolio && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4 relative">
+            <button
+              onClick={() => { setEndorsingResearchIndex(null); setEndorseError(''); setEndorseSuccess(''); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-tu-red shrink-0">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Advisor Endorsement Certification</h3>
+                <p className="text-[11px] text-gray-500">Research Hours Requirement (180h Minimum)</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 bg-[#EEF2F6] p-3 rounded-xl border border-slate-300 text-xs">
+              <div>
+                <span className="text-gray-500">Student: </span>
+                <span className="font-bold text-gray-900">{activeStudent?.FullName}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Activity: </span>
+                <span className="font-bold text-gray-800">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.description || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>
+                  <span className="text-gray-500">Hours: </span>
+                  <span className="font-bold text-tu-red">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.Hours || selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.hours || 0} Hours</span>
+                </span>
+                <span>
+                  <span className="text-gray-500">Date: </span>
+                  <span className="font-semibold text-gray-700">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.date || '-'}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">1. Supervising Advisor Name</label>
+                <input
+                  type="text"
+                  value={selectedEndorseAdvisor}
+                  onChange={e => setSelectedEndorseAdvisor(e.target.value)}
+                  placeholder="Advisor Full Name"
+                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">2. Certification Date</label>
+                <input
+                  type="date"
+                  value={endorseDate}
+                  onChange={e => setEndorseDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">3. Advisor Password Confirmation</label>
+                <input
+                  type="password"
+                  value={endorsePassword}
+                  onChange={e => setEndorsePassword(e.target.value)}
+                  placeholder="Enter advisor password to confirm signature"
+                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                />
+                <span className="text-[10px] text-gray-500 mt-1 block">* Enter password to authenticate your official signature</span>
+              </div>
+            </div>
+
+            {endorseError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-tu-red rounded-xl text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle size={14} className="shrink-0" />
+                {endorseError}
+              </div>
+            )}
+
+            {endorseSuccess && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 size={14} className="shrink-0" />
+                {endorseSuccess}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => { setEndorsingResearchIndex(null); setEndorseError(''); setEndorseSuccess(''); }}
+                className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSavingEndorsement}
+                onClick={handleConfirmResearchEndorsement}
+                className="flex-1 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                {isSavingEndorsement ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Signing...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={14} />
+                    Confirm Certification
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

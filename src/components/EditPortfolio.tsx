@@ -2137,105 +2137,115 @@ export default function EditPortfolio({
               </button>
             </div>
 
-            {isReadOnly ? (
-              <ReadOnlyTable
-                data={(formData.researchExperience || []).map(r => ({
-                  ...r,
-                  endorsementStatus: r.isEndorsed ? `✓ Approved by ${r.endorsedBy || r.advisorName || 'Advisor'} (${r.endorsementDate || '-'})` : 'Pending'
-                }))}
-                columns={[
-                  { header: 'Task Date', key: 'date' },
-                  { header: 'Research Activities', key: 'description' },
-                  { header: 'Worked Hours', key: 'hours' },
-                  { header: 'Supervising Researcher', key: 'supervisor' },
-                  { header: 'Supervising Advisor', key: 'advisorName' },
-                  { header: 'Endorsement', key: 'endorsementStatus' }
-                ]}
-              />
-            ) : (
               <div className="space-y-4">
                 {formData.researchExperience.map((item, idx) => (
                   <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
-                    <button
-                      onClick={() => {
-                        const updated = formData.researchExperience.filter((_, i) => i !== idx);
-                        setFormData({ ...formData, researchExperience: updated });
-                      }}
-                      className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition cursor-pointer"
-                      title="Delete Entry"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => {
+                          const updated = formData.researchExperience.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, researchExperience: updated });
+                        }}
+                        className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition cursor-pointer"
+                        title="Delete Entry"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 pr-6">
                       <div>
                         <label className="text-[10px] font-bold text-gray-500 block mb-1">Task Date</label>
-                        <DatePickerField
-                          value={item.date}
-                          onChange={val => {
-                            const updated = [...formData.researchExperience];
-                            updated[idx].date = val;
-                            setFormData({ ...formData, researchExperience: updated });
-                          }}
-                          className="!py-1.5"
-                        />
+                        {isReadOnly ? (
+                          <div className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-gray-800">
+                            {item.date || '-'}
+                          </div>
+                        ) : (
+                          <DatePickerField
+                            value={item.date}
+                            onChange={val => {
+                              const updated = [...formData.researchExperience];
+                              updated[idx].date = val;
+                              setFormData({ ...formData, researchExperience: updated });
+                            }}
+                            className="!py-1.5"
+                          />
+                        )}
                       </div>
 
                       <div className="sm:col-span-2">
                         <label className="text-[10px] font-bold text-gray-500 block mb-1">Research Activities Performed</label>
-                        <input
-                          type="text"
-                          value={item.description}
-                          placeholder="e.g., Data cleaning, stats, review literature"
-                          onChange={e => {
-                            const updated = [...formData.researchExperience];
-                            updated[idx].description = e.target.value;
-                            setFormData({ ...formData, researchExperience: updated });
-                          }}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium"
-                        />
+                        {isReadOnly ? (
+                          <div className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-gray-900 leading-relaxed">
+                            {item.description || '-'}
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            value={item.description}
+                            placeholder="e.g., Data cleaning, stats, review literature"
+                            onChange={e => {
+                              const updated = [...formData.researchExperience];
+                              updated[idx].description = e.target.value;
+                              setFormData({ ...formData, researchExperience: updated });
+                            }}
+                            className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium"
+                          />
+                        )}
                       </div>
 
                       <div>
                         <label className="text-[10px] font-bold text-gray-500 block mb-1">Worked Hours</label>
-                        <input
-                          type="number"
-                          value={item.Hours || item.hours || ''}
-                          onChange={e => {
-                            const updated = [...formData.researchExperience];
-                            const val = Number(e.target.value);
-                            updated[idx].Hours = val;
-                            updated[idx].hours = val;
-                            setFormData({ ...formData, researchExperience: updated });
-                          }}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
-                        />
+                        {isReadOnly ? (
+                          <div className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-tu-red">
+                            {item.Hours || item.hours || 0} Hours
+                          </div>
+                        ) : (
+                          <input
+                            type="number"
+                            value={item.Hours || item.hours || ''}
+                            onChange={e => {
+                              const updated = [...formData.researchExperience];
+                              const val = Number(e.target.value);
+                              updated[idx].Hours = val;
+                              updated[idx].hours = val;
+                              setFormData({ ...formData, researchExperience: updated });
+                            }}
+                            className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
+                          />
+                        )}
                       </div>
 
                       {/* Merged Supervising Advisor / Researcher Dropdown Field */}
                       <div className="sm:col-span-2">
                         <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Researcher / Advisor</label>
-                        <select
-                          disabled={Boolean(item.isEndorsed)}
-                          value={item.advisorName || item.supervisor || ''}
-                          onChange={e => {
-                            const updated = [...formData.researchExperience];
-                            const chosen = e.target.value;
-                            updated[idx].advisorName = chosen;
-                            updated[idx].supervisor = chosen;
-                            setFormData({ ...formData, researchExperience: updated });
-                          }}
-                          className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs font-medium transition ${
-                            item.isEndorsed 
-                              ? 'border-emerald-300 bg-emerald-50/50 text-gray-600 cursor-not-allowed font-semibold' 
-                              : 'border-red-300 focus:border-tu-red focus:ring-1 focus:ring-tu-red'
-                          }`}
-                        >
-                          <option value="">-- Select Supervising Advisor --</option>
-                          {advisorOptions.map((adv, i) => (
-                            <option key={i} value={adv}>{adv}</option>
-                          ))}
-                        </select>
+                        {isReadOnly ? (
+                          <div className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-gray-800">
+                            {item.advisorName || item.supervisor || 'Not assigned'}
+                          </div>
+                        ) : (
+                          <select
+                            disabled={Boolean(item.isEndorsed)}
+                            value={item.advisorName || item.supervisor || ''}
+                            onChange={e => {
+                              const updated = [...formData.researchExperience];
+                              const chosen = e.target.value;
+                              updated[idx].advisorName = chosen;
+                              updated[idx].supervisor = chosen;
+                              setFormData({ ...formData, researchExperience: updated });
+                            }}
+                            className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs font-medium transition ${
+                              item.isEndorsed 
+                                ? 'border-emerald-300 bg-emerald-50/50 text-gray-600 cursor-not-allowed font-semibold' 
+                                : 'border-red-300 focus:border-tu-red focus:ring-1 focus:ring-tu-red'
+                            }`}
+                          >
+                            <option value="">-- Select Supervising Advisor --</option>
+                            {advisorOptions.map((adv, i) => (
+                              <option key={i} value={adv}>{adv}</option>
+                            ))}
+                          </select>
+                        )}
                         {item.isEndorsed && (
                           <span className="text-[10px] font-medium text-emerald-700 mt-0.5 block">
                             🔒 Certified (Advisor Selection Locked)
@@ -2345,7 +2355,6 @@ export default function EditPortfolio({
                   </div>
                 ))}
               </div>
-            )}
 
             {/* Modal for Advisor Endorsement Certification */}
             {endorsingIndex !== null && (

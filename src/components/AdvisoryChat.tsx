@@ -399,9 +399,9 @@ export default function AdvisoryChat({
 
             {/* TAB 1: Chat Message Room */}
             {activeTab === 'chat' && (
-              <div className="flex-1 flex flex-col min-h-0 bg-gray-50/30">
+              <div className="flex-1 flex flex-col min-h-0 bg-gray-50/30 relative">
                 {/* Messages Box */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-20">
                   {activeMessages.map((msg) => {
                     const isMe = msg.SenderID === currentUser.UserID || msg.SenderID === currentUser.StudentID;
                     return (
@@ -451,8 +451,8 @@ export default function AdvisoryChat({
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Send message Form */}
-                <div className="p-3 bg-white border-t border-gray-100 shrink-0">
+                {/* Send message Form - Sticky floating bar anchored at bottom */}
+                <div className="sticky bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-xs border-t border-gray-200 shadow-sm shrink-0 z-20">
                   {chatAttachment && (
                     <div className="mb-2 p-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-gray-700">
@@ -466,8 +466,8 @@ export default function AdvisoryChat({
                     </div>
                   )}
                   <form onSubmit={handleSendChat} className="flex gap-2 items-center">
-                    <label className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition">
-                      <Paperclip size={16} />
+                    <label className="p-2.5 text-gray-500 hover:text-tu-red bg-gray-100 hover:bg-red-50 rounded-xl cursor-pointer transition">
+                      <Paperclip size={18} />
                       <input type="file" className="hidden" onChange={handleFileAttachment} />
                     </label>
                     <input
@@ -475,14 +475,14 @@ export default function AdvisoryChat({
                       placeholder="Type your message here..."
                       value={messageInput}
                       onChange={e => setMessageInput(e.target.value)}
-                      className="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-tu-red text-xs"
+                      className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-tu-red text-xs font-medium shadow-2xs"
                     />
                     <button
                       type="submit"
                       disabled={sendingChat || chatAttachment?.isUploading || (!messageInput.trim() && !chatAttachment)}
-                      className="bg-tu-red hover:bg-tu-red-hover text-white px-4 py-2 rounded-xl transition duration-150 flex items-center justify-center shrink-0 disabled:opacity-50 cursor-pointer"
+                      className="bg-tu-red hover:bg-tu-red-hover text-white px-5 py-2.5 rounded-xl font-bold transition duration-150 flex items-center justify-center shrink-0 disabled:opacity-50 cursor-pointer shadow-xs"
                     >
-                      <Send size={14} className={sendingChat ? "animate-pulse" : ""} />
+                      <Send size={15} className={sendingChat ? "animate-pulse" : ""} />
                     </button>
                   </form>
                 </div>

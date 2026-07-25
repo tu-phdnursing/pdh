@@ -847,7 +847,7 @@ export default function PrintReport({
                   <tr key={i}>
                     <td className="p-2.5 font-mono">{item.date}</td>
                     <td className="p-2.5 font-medium text-gray-800">{item.description}</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-emerald-600">{item.Hours || item.hours || 0}</td>
+                    <td className="p-2.5 text-center font-mono font-bold text-emerald-600">{(item as any).Hours || item.hours || 0}</td>
                     <td className="p-2.5 text-gray-800 font-medium">{item.advisorName || item.supervisor || '-'}</td>
                     <td className="p-2.5 text-center">
                       {item.isEndorsed ? (
