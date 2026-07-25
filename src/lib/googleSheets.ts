@@ -494,6 +494,10 @@ export async function getUsers(): Promise<User[]> {
       u.Password = '1234';
     }
 
+    if (!u.Status || !String(u.Status).trim()) {
+      u.Status = 'ACTIVE';
+    }
+
     return u as User;
   });
 }
@@ -1257,7 +1261,7 @@ function setupDatabase() {
   var ss = getSpreadsheet();
   
   var schemas = {
-    "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password"],
+    "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password", "Status"],
     "Certificates": ["CertID", "StudentID", "Name", "Date", "Category", "ImageURL", "Status", "ApprovedBy", "Feedback"],
     "Activities": ["ActivityID", "StudentID", "Title", "Date", "Description", "ImagesURL", "Status", "ApprovedBy", "Feedback"],
     "ConfigOptions": ["id", "OptionType", "OptionValue"],
@@ -1298,7 +1302,7 @@ function setupDatabase() {
 function insertExampleData() {
   var ss = getSpreadsheet();
   var headersMap = {
-    "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password"],
+    "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password", "Status"],
     "Certificates": ["CertID", "StudentID", "Name", "Date", "Category", "ImageURL", "Status", "ApprovedBy", "Feedback"],
     "Activities": ["ActivityID", "StudentID", "Title", "Date", "Description", "ImagesURL", "Status", "ApprovedBy", "Feedback"],
     "ConfigOptions": ["id", "OptionType", "OptionValue"],
