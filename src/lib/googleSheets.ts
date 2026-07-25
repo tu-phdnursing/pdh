@@ -822,14 +822,11 @@ export async function saveStudentPortfolio(studentId: string, data: StudentPortf
 
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
-    try {
-      await fetch(scriptUrl, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'savePortfolio', studentId, portfolio: data })
-      });
-    } catch (e) {
-      console.error(e);
-    }
+    // Non-blocking asynchronous sync so the UI never hangs or waits for Apps Script
+    fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'savePortfolio', studentId, portfolio: data })
+    }).catch(e => console.error('Background sync failed:', e));
   }
 }
 
@@ -1698,7 +1695,11 @@ function loadPortfolioFromSheets(studentId) {
               description: r.ExperienceDescription || "",
               hours: Number(r.ExperienceHours || 0),
               supervisor: r.ExperienceSupervisor || "",
-              evidence: r.ExperienceEvidence || ""
+              advisorName: r.ExperienceSupervisor || "",
+              evidence: r.ExperienceEvidence || "",
+              isEndorsed: String(r.ExperienceEndorsed).toUpperCase() === "TRUE" || Boolean(r.ExperienceEndorsedBy),
+              endorsedBy: r.ExperienceEndorsedBy || "",
+              endorsementDate: r.ExperienceEndorsementDate || ""
             });
           }
         }
@@ -2096,8 +2097,8 @@ function savePortfolioToSheets(studentId, portfolio) {
     var resExp = portfolio.researchExperience || [];
     for (var i = 0; i < resExp.length; i++) {
       var re = resExp[i];
-      appendObjectAsRow(s6, ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "LastUpdated"], {
-        StudentID: studentId, RecordType: "EXPERIENCE", ExperienceDate: formatDate(re.date), ExperienceActivity: re.activity, ExperienceDescription: re.description, ExperienceHours: re.hours, ExperienceSupervisor: re.supervisor, ExperienceEvidence: re.evidence, LastUpdated: nowStr
+      appendObjectAsRow(s6, ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "ExperienceEndorsed", "ExperienceEndorsedBy", "ExperienceEndorsementDate", "LastUpdated"], {
+        StudentID: studentId, RecordType: "EXPERIENCE", ExperienceDate: formatDate(re.date), ExperienceActivity: re.activity, ExperienceDescription: re.description, ExperienceHours: re.hours, ExperienceSupervisor: re.supervisor || re.advisorName, ExperienceEvidence: typeof re.evidence === 'string' ? re.evidence : JSON.stringify(re.evidence || []), ExperienceEndorsed: re.isEndorsed ? "TRUE" : "FALSE", ExperienceEndorsedBy: re.endorsedBy || "", ExperienceEndorsementDate: re.endorsementDate || "", LastUpdated: nowStr
       });
     }
   }
