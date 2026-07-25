@@ -179,6 +179,17 @@ export default function App() {
 
     const match = users.find(u => u.Email && typeof u.Email === 'string' && u.Email.toLowerCase().trim() === loginEmail.toLowerCase().trim());
     if (match) {
+      // Check user status permissions
+      const uStatus = (match.Status || 'ACTIVE').toUpperCase().trim();
+      if (['INACTIVE', 'REVOKED', 'DISABLED', 'SUSPENDED', 'REVOKED_RIGHTS'].includes(uStatus)) {
+        setLoginError(`บัญชีของคุณอยู่ในสถานะระงับสิทธิ์การใช้งานระบบ (Status: ${match.Status || 'REVOKED'}) กรุณาติดต่อ Admin คณะพยาบาลศาสตร์`);
+        return;
+      }
+      if (uStatus === 'PENDING') {
+        setLoginError('บัญชีของคุณกำลังอยู่ระหว่างรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ (Status: PENDING)');
+        return;
+      }
+
       const userPassword = String(match.Password || '1234').toLowerCase().trim();
       const inputPassword = loginPassword.toLowerCase().trim();
       if (userPassword === inputPassword) {
@@ -225,7 +236,8 @@ export default function App() {
       PhotoURL: isStudent 
         ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80'
         : 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80',
-      Password: regPassword.trim()
+      Password: regPassword.trim(),
+      Status: 'ACTIVE'
     };
 
     try {
@@ -639,7 +651,6 @@ export default function App() {
                     <option value="STUDENT">Student (นักศึกษาดุษฎีบัณฑิต)</option>
                     <option value="ADVISOR">Advisor (อาจารย์ที่ปรึกษาหลัก)</option>
                     <option value="CO_ADVISOR">Co-Advisor (อาจารย์ที่ปรึกษาร่วม)</option>
-                    <option value="SUPER_ADVISOR">SuperAdvisor (อาจารย์ผู้ดูแลหลักหลักสูตร)</option>
                   </select>
                 </div>
 
@@ -684,14 +695,22 @@ export default function App() {
                       <select
                         value={regMajor}
                         onChange={e => setRegMajor(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-[#F4F6F9] border-0 rounded-xl focus:outline-0 focus:ring-2 focus:ring-[#B31B1B] text-xs"
+                        className="w-full px-3 py-2.5 bg-[#F4F6F9] border-0 rounded-xl focus:outline-0 focus:ring-2 focus:ring-[#B31B1B] text-xs font-semibold text-gray-800"
                       >
-                        <option value="Doctor of Philosophy Program in Nursing Science (International Program)">
-                          PhD in Nursing Science (International Program)
-                        </option>
-                        <option value="Doctor of Philosophy Program in Nursing Science (Thai Program)">
-                          PhD in Nursing Science (Thai Program)
-                        </option>
+                        {configOptions.filter(c => ['DEGREE', 'MAJOR', 'PROGRAM'].includes(c.OptionType.trim())).length > 0 ? (
+                          configOptions.filter(c => ['DEGREE', 'MAJOR', 'PROGRAM'].includes(c.OptionType.trim())).map(c => (
+                            <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Doctor of Philosophy Program in Nursing Science (International Program)">
+                              Doctor of Philosophy Program in Nursing Science (International Program)
+                            </option>
+                            <option value="PhD in Nursing Science (Thai Program)">
+                              PhD in Nursing Science (Thai Program)
+                            </option>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -703,13 +722,17 @@ export default function App() {
                         <select
                           value={regAdvisor}
                           onChange={e => setRegAdvisor(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-[#F4F6F9] border-0 rounded-xl focus:outline-0 focus:ring-2 focus:ring-[#B31B1B] text-xs"
+                          className="w-full px-3 py-2.5 bg-[#F4F6F9] border-0 rounded-xl focus:outline-0 focus:ring-2 focus:ring-[#B31B1B] text-xs font-semibold text-gray-800"
                         >
                           <option value="">Select Advisor...</option>
-                          {users.filter(u => u.Role === 'ADVISOR' || u.Role === 'CO_ADVISOR' || u.Role === 'SUPER_ADVISOR').map(u => (
+                          {/* Option 1: From ConfigOptions */}
+                          {configOptions.filter(c => c.OptionType.trim() === 'ADVISOR').map(c => (
+                            <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
+                          ))}
+                          {/* Option 2: From Registered Advisor Users */}
+                          {users.filter(u => u.Role === 'ADVISOR' || u.Role === 'CO_ADVISOR').map(u => (
                             <option key={u.UserID} value={u.FullName}>{u.FullName}</option>
                           ))}
-                          <option value="Assoc. Prof. Dr. Nonglak Wisetsilp">Assoc. Prof. Dr. Nonglak Wisetsilp</option>
                         </select>
                       </div>
 
