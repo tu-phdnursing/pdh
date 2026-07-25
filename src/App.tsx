@@ -1278,9 +1278,9 @@ export default function App() {
               <Loader2 size={32} className="animate-spin text-tu-red" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-extrabold text-gray-900 text-base">กำลังดึงข้อมูลระบบ (Fetching Live Data)</h3>
+              <h3 className="font-extrabold text-gray-900 text-base">Fetching Live Data</h3>
               <p className="text-xs text-gray-500 leading-relaxed">
-                ระบบกำลังเชื่อมต่อดึงข้อมูลล่าสุดจาก Google Sheets (อาจใช้เวลาประมาณ 5 - 15 วินาที)
+                Connecting to Google Sheets to sync portfolio records...
               </p>
             </div>
             <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
@@ -1305,7 +1305,7 @@ export default function App() {
               <span className="text-base text-red-600">⚠️</span>
             )}
             <span>
-              {syncStatus === 'success' ? 'ดึงข้อมูลสำเร็จ (Data Synced)' : 'ดึงข้อมูลล้มเหลว'}
+              {syncStatus === 'success' ? 'Data Synced Successfully' : 'Data Sync Failed'}
             </span>
           </div>
         )}
@@ -1326,9 +1326,9 @@ export default function App() {
               <span className="text-base text-red-600">⚠️</span>
             )}
             <span>
-              {saveStatus === 'saving' ? 'กำลังบันทึกข้อมูล...' :
-               saveStatus === 'success' ? 'บันทึกข้อมูลสำเร็จ' :
-               'บันทึกข้อมูลล้มเหลว'}
+              {saveStatus === 'saving' ? 'Saving portfolio changes...' :
+               saveStatus === 'success' ? 'Saved to Google Sheets' :
+               'Save failed'}
             </span>
           </div>
         )}
