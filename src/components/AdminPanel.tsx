@@ -56,6 +56,18 @@ export default function AdminPanel({
     setLogs(getLogs());
   }, [adminTab]);
 
+  const handleToggleUserStatus = async (userToUpdate: User) => {
+    const currentStatus = (userToUpdate.Status || 'ACTIVE').toUpperCase().trim();
+    const isCurrentlyActive = currentStatus === 'ACTIVE' || currentStatus === 'APPROVED';
+    const newStatus = isCurrentlyActive ? 'REVOKED' : 'ACTIVE';
+    
+    const updated: User = {
+      ...userToUpdate,
+      Status: newStatus
+    };
+    await onAddUser(updated);
+  };
+
   const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser || !editingUser.Email || !editingUser.FullName) return;
@@ -76,7 +88,8 @@ export default function AdminPanel({
       Major: newUserForm.Major,
       Advisor: newUserForm.Advisor,
       CoAdvisor: newUserForm.CoAdvisor,
-      ThesisTitle: newUserForm.ThesisTitle
+      ThesisTitle: newUserForm.ThesisTitle,
+      Status: newUserForm.Status || 'ACTIVE'
     };
 
     await onAddUser(formattedUser);
@@ -186,6 +199,7 @@ export default function AdminPanel({
                       <th className="p-4">Registered Email</th>
                       <th className="p-4">Role</th>
                       <th className="p-4">Student/Advisor ID</th>
+                      <th className="p-4 text-center">Status (สิทธิ์ใช้งาน)</th>
                       <th className="p-4 text-center">Actions</th>
                     </tr>
                   </thead>
@@ -226,17 +240,72 @@ export default function AdminPanel({
                         </td>
                         <td className="p-4 font-mono">{user.StudentID || 'N/A'}</td>
                         <td className="p-4 text-center">
-                          <div className="flex justify-center items-center gap-1">
+                          {(() => {
+                            const uStat = (user.Status || 'ACTIVE').toUpperCase().trim();
+                            if (uStat === 'ACTIVE' || uStat === 'APPROVED') {
+                              return (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 inline-flex items-center gap-1 shadow-2xs">
+                                  <Check size={12} className="text-emerald-600" />
+                                  อนุมัติแล้ว (Active)
+                                </span>
+                              );
+                            } else if (uStat === 'PENDING') {
+                              return (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 inline-flex items-center gap-1 shadow-2xs">
+                                  <RefreshCw size={11} className="animate-spin text-amber-600" />
+                                  รออนุมัติ (Pending)
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200/80 inline-flex items-center gap-1 shadow-2xs">
+                                  <ShieldAlert size={12} className="text-red-600" />
+                                  ระงับสิทธิ์ (Revoked)
+                                </span>
+                              );
+                            }
+                          })()}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex justify-center items-center gap-1.5">
+                            {(() => {
+                              const uStat = (user.Status || 'ACTIVE').toUpperCase().trim();
+                              const isActive = uStat === 'ACTIVE' || uStat === 'APPROVED';
+                              return (
+                                <button
+                                  onClick={() => handleToggleUserStatus(user)}
+                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs ${
+                                    isActive
+                                      ? 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200/60'
+                                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60'
+                                  }`}
+                                  title={isActive ? "คลิกเพื่อระงับสิทธิ์การใช้งาน (Revoke Access)" : "คลิกเพื่ออนุมัติสิทธิ์การใช้งาน (Approve Access)"}
+                                >
+                                  {isActive ? (
+                                    <>
+                                      <ShieldAlert size={12} />
+                                      <span>ระงับสิทธิ์</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={12} />
+                                      <span>อนุมัติสิทธิ์</span>
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            })()}
+
                             <button
                               onClick={() => setEditingUser(user)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
-                              title="Edit User / Pair Advisors"
+                              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                              title="Edit User Profile / Status"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button
                               onClick={() => onDeleteUser(user.UserID)}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                               title="Delete User Account"
                             >
                               <Trash2 size={14} />
@@ -271,7 +340,6 @@ export default function AdminPanel({
                           <option value="STUDENT">STUDENT (นักศึกษา)</option>
                           <option value="ADVISOR">ADVISOR (อาจารย์ที่ปรึกษาหลัก)</option>
                           <option value="CO_ADVISOR">CO_ADVISOR (อาจารย์ที่ปรึกษาร่วม)</option>
-                          <option value="SUPER_ADVISOR">SUPER_ADVISOR (อาจารย์ผู้ดูแลหลักหลักสูตร)</option>
                           <option value="ADMIN">ADMIN (แอดมินระบบ)</option>
                         </select>
                       </div>
@@ -313,6 +381,19 @@ export default function AdminPanel({
                         placeholder="student@tu.ac.th"
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono"
                       />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-gray-500 block mb-1">Access Status (สถานะอนุมัติสิทธิ์ใช้งาน)</label>
+                      <select
+                        value={newUserForm.Status || 'ACTIVE'}
+                        onChange={e => setNewUserForm({ ...newUserForm, Status: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-800"
+                      >
+                        <option value="ACTIVE">ACTIVE (อนุมัติสิทธิ์การใช้งาน)</option>
+                        <option value="REVOKED">REVOKED (ระงับสิทธิ์การใช้งาน)</option>
+                        <option value="PENDING">PENDING (รอการตรวจสอบอนุมัติ)</option>
+                      </select>
                     </div>
 
                     {newUserForm.Role === 'STUDENT' && (
@@ -387,7 +468,6 @@ export default function AdminPanel({
                           <option value="STUDENT">STUDENT (นักศึกษา)</option>
                           <option value="ADVISOR">ADVISOR (อาจารย์ที่ปรึกษาหลัก)</option>
                           <option value="CO_ADVISOR">CO_ADVISOR (อาจารย์ที่ปรึกษาร่วม)</option>
-                          <option value="SUPER_ADVISOR">SUPER_ADVISOR (อาจารย์ผู้ดูแลหลักหลักสูตร)</option>
                           <option value="ADMIN">ADMIN (แอดมินระบบ)</option>
                         </select>
                       </div>
@@ -429,6 +509,19 @@ export default function AdminPanel({
                         placeholder="student@tu.ac.th"
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono"
                       />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-gray-500 block mb-1">Access Status (สถานะอนุมัติสิทธิ์ใช้งาน)</label>
+                      <select
+                        value={editingUser.Status || 'ACTIVE'}
+                        onChange={e => setEditingUser({ ...editingUser, Status: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-800"
+                      >
+                        <option value="ACTIVE">ACTIVE (อนุมัติสิทธิ์การใช้งาน)</option>
+                        <option value="REVOKED">REVOKED (ระงับสิทธิ์การใช้งาน)</option>
+                        <option value="PENDING">PENDING (รอการตรวจสอบอนุมัติ)</option>
+                      </select>
                     </div>
 
                     {editingUser.Role === 'STUDENT' && (
