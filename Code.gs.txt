@@ -1,0 +1,215 @@
+function doGet(e) {
+  var type = e.parameter.type || e.parameter.action;
+  
+  if (type === 'forgotPassword') {
+    return handleForgotPassword(e.parameter.email);
+  }
+  
+  if (type === 'registerEmail') {
+    return handleRegisterEmail(e.parameter.email, e.parameter.password, e.parameter.name);
+  }
+
+  // Handle other types like users, certificates, activities, configOptions
+  var sheetName = getSheetName(type);
+  if (!sheetName) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "Invalid type" })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  
+  var headers = data[0];
+  var result = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = data[i][j];
+    }
+    result.push(obj);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  if (!e.postData || !e.postData.contents) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "No payload" })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var payload = JSON.parse(e.postData.contents);
+  
+  // Handle file uploads
+  if (payload.action === 'uploadFile') {
+    return uploadFileToDrive(payload);
+  }
+  
+  var type = payload.type;
+  var dataObj = payload.data;
+  
+  var sheetName = getSheetName(type);
+  if (!sheetName) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Invalid type" })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    var headers = Object.keys(dataObj);
+    sheet.appendRow(headers);
+  }
+  
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  var idField = getIdField(type);
+  var data = sheet.getDataRange().getValues();
+  var rowIndex = -1;
+  
+  for (var i = 1; i < data.length; i++) {
+    var idIndex = headers.indexOf(idField);
+    if (idIndex > -1 && data[i][idIndex] === dataObj[idField]) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  var row = [];
+  for (var j = 0; j < headers.length; j++) {
+    var key = headers[j];
+    var val = dataObj[key];
+    if (typeof val === 'object') {
+      val = JSON.stringify(val);
+    }
+    row.push(val !== undefined ? val : "");
+  }
+  
+  if (rowIndex > -1) {
+    sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSheetName(type) {
+  var map = {
+    'users': 'Users',
+    'certificates': 'Certificates',
+    'activities': 'Activities',
+    'configOptions': 'ConfigOptions',
+    'logs': 'ActivityLogs',
+    'portfolio': 'Portfolios',
+    'chats': 'Chats',
+    'notifications': 'Notifications'
+  };
+  return map[type];
+}
+
+function getIdField(type) {
+  var map = {
+    'users': 'UserID',
+    'certificates': 'CertID',
+    'activities': 'ActivityID',
+    'configOptions': 'id',
+    'logs': 'id',
+    'portfolio': 'StudentID',
+    'chats': 'id',
+    'notifications': 'id'
+  };
+  return map[type];
+}
+
+function uploadFileToDrive(payload) {
+  var mimeType = payload.mimeType;
+  var fileName = payload.fileName;
+  var fileData = payload.fileData; // base64
+  var studentId = payload.studentId || 'unknown';
+  var studentName = payload.studentName || 'Student';
+  var role = payload.role || 'STUDENT';
+  
+  var base64Data = fileData.split(',')[1] || fileData;
+  var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
+  
+  var parentFolderName = "PhD_Portfolio_Uploads";
+  var studentFolderName = studentId + " - " + studentName;
+  
+  var folders = DriveApp.getFoldersByName(parentFolderName);
+  var parentFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(parentFolderName);
+  
+  var studentFolders = parentFolder.getFoldersByName(studentFolderName);
+  var studentFolder = studentFolders.hasNext() ? studentFolders.next() : parentFolder.createFolder(studentFolderName);
+  
+  var file = studentFolder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  var fileUrl = file.getUrl();
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    fileUrl: fileUrl,
+    fileId: file.getId()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleForgotPassword(email) {
+  if (!email) return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Email missing' })).setMimeType(ContentService.MimeType.JSON);
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Users");
+  if (!sheet) return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Sheet not found' })).setMimeType(ContentService.MimeType.JSON);
+  
+  var data = sheet.getDataRange().getValues();
+  var emailIdx = data[0].indexOf("Email");
+  var pwdIdx = data[0].indexOf("Password");
+  var nameIdx = data[0].indexOf("FullName");
+  
+  if (emailIdx === -1) return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+  
+  var foundPwd = null;
+  var foundName = null;
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][emailIdx].toString().trim().toLowerCase() === email.trim().toLowerCase()) {
+      foundPwd = pwdIdx > -1 ? data[i][pwdIdx] : '1234';
+      foundName = nameIdx > -1 ? data[i][nameIdx] : 'User';
+      break;
+    }
+  }
+  
+  if (foundPwd) {
+    try {
+      MailApp.sendEmail({
+        to: email,
+        subject: "Your PhD Portfolio System Password",
+        htmlBody: "Hello " + foundName + ",<br><br>Your password for the PhD Portfolio Management System is: <b>" + foundPwd + "</b><br><br>Please keep this safe.<br><br>Best regards,<br>Faculty of Nursing, Thammasat University"
+      });
+      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+    } catch(e) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: e.toString() })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleRegisterEmail(email, password, name) {
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: "Welcome to PhD Portfolio System",
+      htmlBody: "Hello " + (name || '') + ",<br><br>Welcome to the PhD Portfolio Management System!<br><br>Your account has been created successfully. You can log in using your email and the password you created.<br><br>Access the portal here: <b><a href='https://your-app-url-here.com'>Login to Portfolio</a></b><br><br>Best regards,<br>Faculty of Nursing, Thammasat University"
+    });
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } catch(e) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
