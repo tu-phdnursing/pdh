@@ -453,6 +453,28 @@ export default function AdvisoryChat({
 
                 {/* Send message Form - Sticky floating bar anchored at bottom */}
                 <div className="sticky bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-xs border-t border-gray-200 shadow-sm shrink-0 z-20">
+                  {/* Active Chat Recipient Banner */}
+                  <div className="mb-2.5 px-3 py-1.5 bg-red-50/80 border border-red-200/80 rounded-xl flex items-center justify-between text-xs shadow-2xs">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="text-gray-500 font-semibold shrink-0">กำลังคุยกับ / Messaging:</span>
+                      <img
+                        src={resolvePhotoUrl(activeContact.PhotoURL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80')}
+                        alt={activeContact.FullName}
+                        className="w-5 h-5 rounded-full object-cover shrink-0 border border-gray-200"
+                      />
+                      <span className="font-extrabold text-gray-900 truncate">{activeContact.FullName}</span>
+                      {activeContact.StudentID && (
+                        <span className="text-[10px] font-mono font-bold text-tu-red bg-white px-1.5 py-0.5 rounded border border-red-100 shrink-0">
+                          ID: {activeContact.StudentID}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-md border border-gray-200 shrink-0 hidden sm:inline">
+                      {activeContact.Role === 'STUDENT' ? 'นักศึกษา' : 'อาจารย์'}
+                    </span>
+                  </div>
+
                   {chatAttachment && (
                     <div className="mb-2 p-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-gray-700">
