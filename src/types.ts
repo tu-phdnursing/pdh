@@ -24,6 +24,7 @@ export interface User {
   PhotoURL?: string;
   AdditionalPhotos?: string[];
   Password?: string;
+  Status?: string;
 }
 
 export type CertStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
