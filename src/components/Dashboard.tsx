@@ -380,14 +380,16 @@ export default function Dashboard({
                 <span className="text-4xl font-extrabold text-gray-900 font-mono">{completedHours}</span>
                 <span className="text-sm text-gray-500">/ {targetHours} Hours Required</span>
               </div>
-              <div className="text-xs font-semibold text-tu-red flex items-center gap-1.5 mt-0.5">
+              <div className="text-xs font-semibold text-tu-red flex items-center gap-1.5 mt-1">
                 {remainingHours > 0 ? (
-                  <span className="bg-red-50 text-tu-red px-2 py-0.5 rounded-md border border-red-100 text-[11px]">
-                    (ต้องเก็บเพิ่มอีก {remainingHours} ชม. / {remainingHours} hrs remaining)
+                  <span className="bg-red-50 text-tu-red px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold inline-flex items-center gap-1">
+                    <span>ต้องเก็บเพิ่มอีก:</span>
+                    <strong className="font-mono text-sm text-red-700">{remainingHours}</strong>
+                    <span>ชั่วโมง (Remaining)</span>
                   </span>
                 ) : (
-                  <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100 text-[11px]">
-                    ✓ ครบตามกำหนด 180 ชม. แล้ว
+                  <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200 text-xs font-bold flex items-center gap-1">
+                    ✓ สะสมครบตามกำหนด 180 ชม. แล้ว
                   </span>
                 )}
               </div>
@@ -410,8 +412,17 @@ export default function Dashboard({
           
           <div className="mt-4 pt-3 border-t border-gray-50 flex justify-between items-center text-xs text-gray-500">
             <span>Logged Research Entries: {researchExperience.length}</span>
-            <button onClick={() => onNavigate('edit', 6)} className="text-tu-red font-semibold hover:underline cursor-pointer">
-              View Details
+            <button 
+              onClick={() => {
+                if (['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR', 'ADMIN'].includes(currentUser.Role)) {
+                  onNavigate('advisor', 6);
+                } else {
+                  onNavigate('edit', 6);
+                }
+              }} 
+              className="text-tu-red font-bold hover:underline cursor-pointer flex items-center gap-1"
+            >
+              View Details (ดูรายละเอียดข้อ 6) →
             </button>
           </div>
         </div>

@@ -2212,38 +2212,69 @@ export default function EditPortfolio({
                         />
                       </div>
 
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 block mb-1">Supervising Researcher</label>
-                        <input
-                          type="text"
-                          value={item.supervisor}
-                          placeholder="e.g., WP / Dr. Smith"
-                          onChange={e => {
-                            const updated = [...formData.researchExperience];
-                            updated[idx].supervisor = e.target.value;
-                            setFormData({ ...formData, researchExperience: updated });
-                          }}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Advisor (ผู้รับรอง)</label>
+                      {/* Merged Supervising Advisor / Researcher Dropdown Field */}
+                      <div className="sm:col-span-2">
+                        <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Researcher / Advisor (อาจารย์ผู้รับรอง)</label>
                         <select
-                          value={item.advisorName || ''}
+                          disabled={Boolean(item.isEndorsed)}
+                          value={item.advisorName || item.supervisor || ''}
                           onChange={e => {
                             const updated = [...formData.researchExperience];
-                            updated[idx].advisorName = e.target.value;
+                            const chosen = e.target.value;
+                            updated[idx].advisorName = chosen;
+                            updated[idx].supervisor = chosen;
                             setFormData({ ...formData, researchExperience: updated });
                           }}
-                          className="w-full px-2.5 py-1.5 bg-white border border-red-300 focus:border-tu-red rounded-lg text-xs font-medium"
+                          className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs font-medium transition ${
+                            item.isEndorsed 
+                              ? 'border-emerald-300 bg-emerald-50/50 text-gray-600 cursor-not-allowed font-semibold' 
+                              : 'border-red-300 focus:border-tu-red focus:ring-1 focus:ring-tu-red'
+                          }`}
                         >
-                          <option value="">-- เลือกอาจารย์ --</option>
+                          <option value="">-- เลือกอาจารย์ที่ปรึกษา / ผู้รับรอง --</option>
                           {advisorOptions.map((adv, i) => (
                             <option key={i} value={adv}>{adv}</option>
                           ))}
                         </select>
+                        {item.isEndorsed && (
+                          <span className="text-[10px] font-medium text-emerald-700 mt-0.5 block">
+                            🔒 อาจารย์ลงนามแล้ว (ล็อคการแก้ไขชื่ออาจารย์)
+                          </span>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Evidence / Attachments for Research Entry */}
+                    <div className="pt-2 border-t border-slate-200/60">
+                      <label className="text-[10px] font-bold text-gray-500 block mb-1">
+                        Attached Evidence / Files (เอกสารหลักฐานประกอบ)
+                      </label>
+                      <FileUploader
+                        isReadOnly={isReadOnly}
+                        studentId={currentUser.StudentID || '6601010024'}
+                        studentName={currentUser.FullName || 'Student'}
+                        uploaderId={currentUser.StudentID || '6601010024'}
+                        uploaderRole="student"
+                        maxFiles={3}
+                        files={(() => {
+                          if (Array.isArray(item.evidence)) return item.evidence.map(f => typeof f === 'string' ? { name: 'Attachment', url: f } : f);
+                          if (typeof item.evidence === 'string') {
+                            if (item.evidence.trim().startsWith('[')) {
+                              try { return JSON.parse(item.evidence); } catch(e) { return [{ name: 'Attachment', url: item.evidence }]; }
+                            } else if (item.evidence.trim()) {
+                              return [{ name: 'Attachment', url: item.evidence }];
+                            }
+                          }
+                          return [];
+                        })()}
+                        onChange={(newFiles) => {
+                          const updated = [...formData.researchExperience];
+                          updated[idx].evidence = JSON.stringify(newFiles);
+                          const newFormData = { ...formData, researchExperience: updated };
+                          setFormData(newFormData);
+                          onSavePortfolio(newFormData);
+                        }}
+                      />
                     </div>
 
                     {/* Advisor Endorsement Status Bar */}
@@ -2253,36 +2284,53 @@ export default function EditPortfolio({
                           <div className="flex items-center gap-2">
                             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                             <span>
-                              ได้รับการลงนามรับรองแล้ว โดย <strong>{item.endorsedBy || item.advisorName}</strong> เมื่อวันที่ {item.endorsementDate || '-'}
+                              ได้รับการลงนามรับรองแล้ว โดย <strong>{item.endorsedBy || item.advisorName || item.supervisor}</strong> เมื่อวันที่ {item.endorsementDate || '-'}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEndorsingIndex(idx);
-                              setSelectedEndorseAdvisor(item.advisorName || item.endorsedBy || advisorOptions[0] || '');
-                              setEndorsePassword('');
-                              setEndorseError('');
-                              setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
-                            }}
-                            className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
-                          >
-                            แก้ไขการรับรอง (Re-certify)
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEndorsingIndex(idx);
+                                setSelectedEndorseAdvisor(item.advisorName || item.supervisor || item.endorsedBy || advisorOptions[0] || '');
+                                setEndorsePassword('');
+                                setEndorseError('');
+                                setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
+                              }}
+                              className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
+                            >
+                              แก้ไขการรับรอง (Re-certify)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const updated = [...formData.researchExperience];
+                                updated[idx].isEndorsed = false;
+                                updated[idx].endorsedBy = undefined;
+                                updated[idx].endorsementDate = undefined;
+                                const newFormData = { ...formData, researchExperience: updated };
+                                setFormData(newFormData);
+                                await onSavePortfolio(newFormData);
+                              }}
+                              className="text-[11px] text-red-600 underline hover:text-red-800 cursor-pointer"
+                            >
+                              ยกเลิกการยืนยัน (Cancel Endorsement)
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50/90 p-2.5 rounded-lg border border-amber-200 text-xs">
                           <div className="text-amber-800 font-medium flex items-center gap-1.5">
                             <AlertCircle size={14} className="text-amber-600 shrink-0" />
                             <span>รออาจารย์ที่ปรึกษาลงนามรับรอง (Pending Advisor Certification)</span>
-                            {item.advisorName && <span className="font-semibold text-gray-700">[{item.advisorName}]</span>}
+                            {(item.advisorName || item.supervisor) && <span className="font-semibold text-gray-700">[{item.advisorName || item.supervisor}]</span>}
                           </div>
 
                           <button
                             type="button"
                             onClick={() => {
                               setEndorsingIndex(idx);
-                              setSelectedEndorseAdvisor(item.advisorName || currentUser.Advisor || advisorOptions[0] || '');
+                              setSelectedEndorseAdvisor(item.advisorName || item.supervisor || currentUser.Advisor || advisorOptions[0] || '');
                               setEndorsePassword('');
                               setEndorseError('');
                               setEndorseDate(new Date().toISOString().split('T')[0]);

@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2 } from 'lucide-react';
-import { resolvePhotoUrl, resolveFileUrl, formatDisplayDate, getStudentPortfolio } from '../lib/googleSheets';
+import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio } from '../lib/googleSheets';
 import StudentInformation from './StudentInformation';
 import StudentProgressDashboard from './StudentProgressDashboard';
 import EditPortfolio from './EditPortfolio';
@@ -241,13 +241,23 @@ export default function AdvisorPanel({
                         }
                         
                         const firstFile = files[0];
-                        const isImg = firstFile && (/\.(png|jpe?g|gif|webp)$/i.test(firstFile.name) || firstFile.url.includes('images.unsplash.com') || firstFile.url.startsWith('LOCAL_FILE_'));
+                        const isImg = firstFile && isImageFile(firstFile);
                         const coverUrl = isImg ? resolveFileUrl(firstFile.url) : 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=800&q=80';
 
                         return (
                           <div key={cert.CertID} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between">
-                            <div className="relative h-44 bg-gray-50">
-                              <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                            <div className="relative h-44 bg-slate-100 flex items-center justify-center overflow-hidden">
+                              {isImg ? (
+                                <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                              ) : firstFile ? (
+                                <div className="p-4 flex flex-col items-center justify-center text-center space-y-1.5 w-full h-full bg-slate-800 text-white">
+                                  <FileText size={36} className="text-amber-400" />
+                                  <span className="text-xs font-bold line-clamp-2 px-2 text-slate-100">{firstFile.name || cert.Name}</span>
+                                  <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded uppercase font-mono">Document File</span>
+                                </div>
+                              ) : (
+                                <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                              )}
                               <div className="absolute top-3 right-3">
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                   cert.Status === 'APPROVED'

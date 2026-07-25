@@ -838,7 +838,8 @@ export default function PrintReport({
                   <th className="p-2.5">Date</th>
                   <th className="p-2.5">Research Work Performed</th>
                   <th className="p-2.5 text-center">Hours</th>
-                  <th className="p-2.5">Supervisor / Advisor</th>
+                  <th className="p-2.5">Supervising Researcher / Advisor</th>
+                  <th className="p-2.5 text-center">Advisor Endorsement</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -846,8 +847,19 @@ export default function PrintReport({
                   <tr key={i}>
                     <td className="p-2.5 font-mono">{item.date}</td>
                     <td className="p-2.5 font-medium text-gray-800">{item.description}</td>
-                    <td className="p-2.5 text-center font-mono font-bold text-emerald-600">{item.hours}</td>
-                    <td className="p-2.5 text-gray-600">{item.supervisor}</td>
+                    <td className="p-2.5 text-center font-mono font-bold text-emerald-600">{item.Hours || item.hours || 0}</td>
+                    <td className="p-2.5 text-gray-800 font-medium">{item.advisorName || item.supervisor || '-'}</td>
+                    <td className="p-2.5 text-center">
+                      {item.isEndorsed ? (
+                        <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px] inline-block">
+                          ✓ ลงนามรับรองแล้ว ({item.endorsedBy || item.advisorName || item.supervisor})
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] inline-block">
+                          รอลงนามรับรอง
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

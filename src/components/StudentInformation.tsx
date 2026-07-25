@@ -11,7 +11,7 @@ import FileUploader, { AttachedFile } from './FileUploader';
 import DatePickerField from './DatePickerField';
 import EditPortfolio from './EditPortfolio';
 import PrintReport from './PrintReport';
-import { getAppsScriptUrl, uploadFileToDrive, resolvePhotoUrl, resolveFileUrl, formatDisplayDate } from '../lib/googleSheets';
+import { getAppsScriptUrl, uploadFileToDrive, resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate } from '../lib/googleSheets';
 
 interface StudentInformationProps {
   currentUser: User;
@@ -916,13 +916,23 @@ export default function StudentInformation({
                         }
                         
                         const firstFile = files[0];
-                        const isImg = firstFile && (/\.(png|jpe?g|gif|webp)$/i.test(firstFile.name) || firstFile.url.includes('images.unsplash.com') || firstFile.url.startsWith('LOCAL_FILE_'));
+                        const isImg = firstFile && isImageFile(firstFile);
                         const coverUrl = isImg ? resolveFileUrl(firstFile.url) : 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=800&q=80';
                         
                         return (
                           <>
-                            <div className="relative h-44 bg-gray-100">
-                              <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                            <div className="relative h-44 bg-slate-100 flex items-center justify-center overflow-hidden">
+                              {isImg ? (
+                                <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                              ) : firstFile ? (
+                                <div className="p-4 flex flex-col items-center justify-center text-center space-y-1.5 w-full h-full bg-slate-800 text-white">
+                                  <FileText size={36} className="text-amber-400" />
+                                  <span className="text-xs font-bold line-clamp-2 px-2 text-slate-100">{firstFile.name || cert.Name}</span>
+                                  <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded uppercase font-mono">Document File</span>
+                                </div>
+                              ) : (
+                                <img src={coverUrl} alt={cert.Name} className="w-full h-full object-cover" />
+                              )}
                               <div className="absolute top-3 right-3">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider shadow-sm flex items-center gap-1 ${
                                   cert.Status === 'APPROVED'
