@@ -1,220 +1,141 @@
-export type UserRole = "Admin" | "Advisor" | "CoAdvisor" | "Student";
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export type UserRole = 'STUDENT' | 'ADVISOR' | 'CO_ADVISOR' | 'SUPER_ADVISOR' | 'ADMIN';
 
 export interface User {
   UserID: string;
   Email: string;
+  FullName: string;
   Role: UserRole;
-  Prefix: string;
-  FirstName: string;
-  LastName: string;
-  FullName: string;
+  StudentID?: string;
+  Major?: string;
+  Advisor?: string;
+  CoAdvisor?: string;
+  ThesisTitle?: string;
+  LineID?: string;
+  ORCID?: string;
+  DateOfSubmission?: string;
+  YearOfAdmission?: string;
+  ResearchInterests?: string;
+  ExpectedGraduationYear?: string;
+  PhotoURL?: string;
+  AdditionalPhotos?: string[];
+  Password?: string;
+}
+
+export type CertStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface Certificate {
+  CertID: string;
   StudentID: string;
-  Program: string;
-  Faculty: string;
-  University: string;
-  AdmissionYear: string;
-  ExpectedGraduationYear: string;
-  MajorAdvisorID: string;
-  CoAdvisorIDs: string;
-  Position: string;
-  Affiliation: string;
-  Phone: string;
-  LineID: string;
-  ResearchInterests: string;
-  ORCID: string;
-  PhotoURL: string;
-  Status: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-export interface PortfolioRecord {
-  RecordID: string;
-  StudentUserID: string;
-  SectionNo: number;
-  SectionTitle: string;
-  SubsectionNo: number;
-  SubsectionTitle: string;
-  RecordType: string;
-  Field1: string;
-  Field2: string;
-  Field3: string;
-  Field4: string;
-  Field5: string;
-  Field6: string;
-  Field7: string;
-  LongText: string;
-  Status: string;
-  EvidenceIDs: string;
-  CreatedBy: string;
-  CreatedAt: string;
-  UpdatedBy: string;
-  UpdatedAt: string;
-}
-
-export interface StudentProfile {
-  ProfileID: string;
-  StudentUserID: string;
-  FullName: string;
-  ContactInformation: string;
-  CurrentPositionAffiliation: string;
-  ResearchInterests: string;
-  ORCID: string;
-  GoalsForDoctoralStudy: string;
-  DevelopmentPlan: string;
-  EnglishReflection: string;
-  ResearchExperienceReflection: string;
-  NetworkingReflection: string;
-  CommunicationReflection: string;
-  AcademicGrowthReflection: string;
-  ResearchIdentityReflection: string;
-  ChallengesReflection: string;
-  TransformationReflection: string;
-  ShortTermCareerGoals: string;
-  LongTermCareerAspirations: string;
-  PreparationNeeded: string;
-  UpdatedAt: string;
-  UpdatedBy: string;
-}
-
-export interface Dissertation {
-  DissertationID: string;
-  StudentUserID: string;
-  TopicDevelopment: string;
-  Title: string;
-  BackgroundSignificance: string;
-  ResearchProblem: string;
-  Objectives: string;
-  ResearchQuestionsHypotheses: string;
-  ConceptualFramework: string;
-  MethodologyOverview: string;
-  EthicsApplicationDate: string;
-  EthicsApprovalDate: string;
-  ApprovalNumber: string;
-  Amendments: string;
-  DataManagementNotes: string;
-  ChallengesSolutions: string;
-  UpdatedAt: string;
-  UpdatedBy: string;
-}
-
-export interface ResearchHour {
-  HourID: string;
-  StudentUserID: string;
+  Name: string;
   Date: string;
-  ResearchActivity: string;
-  WorkDescription: string;
-  Hours: number;
-  SupervisorAdvisor: string;
-  EvidenceIDs: string;
-  CreatedBy: string;
-  CreatedAt: string;
-  UpdatedAt: string;
+  Category: string;
+  ImageURL: string;
+  Status: CertStatus;
+  ApprovedBy?: string;
+  Feedback?: string;
 }
 
-export interface CompetencyAssessment {
-  AssessmentID: string;
-  StudentUserID: string;
-  Competency: string;
-  Level: "Beginning" | "Developing" | "Competent" | "Proficient";
-  EvidenceRemarks: string;
-  ReviewYear: string;
-  CreatedBy: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-export interface AdvisorComment {
-  CommentID: string;
-  StudentUserID: string;
-  AdvisorUserID: string;
-  ReviewYear: string;
-  CommentText: string;
-  Recommendation: string;
-  Status: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-export interface Endorsement {
-  EndorsementID: string;
-  StudentUserID: string;
-  Role: string;
-  AdvisorUserID: string;
-  AdvisorName: string;
-  SignatureText: string;
-  SignatureDate: string;
-  Status: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-export interface Evidence {
-  EvidenceID: string;
-  StudentUserID: string;
-  RelatedRecordID: string;
-  RelatedSection: string;
-  FileName: string;
-  FileURL: string;
-  FileID: string;
-  MimeType: string;
-  UploadedBy: string;
-  UploadedAt: string;
-  Description: string;
-}
-
-export interface Notification {
-  NotificationID: string;
-  SenderUserID: string;
-  ReceiverUserID: string;
+export interface Activity {
+  ActivityID: string;
+  StudentID: string;
   Title: string;
-  Message: string;
-  FileName: string;
-  FileURL: string;
-  IsRead: string;
-  CreatedAt: string;
-  ReadAt: string;
+  Date: string;
+  Description: string;
+  ImagesURL: (string | { name: string; url: string })[]; // Saved as JSON string in Google Sheet
+  Status: CertStatus;
+  ApprovedBy?: string;
+  Feedback?: string;
+}
+
+export type OptionType = 'ADVISOR' | 'CO_ADVISOR' | 'CERT_CATEGORY' | 'DEGREE' | 'COURSE' | 'COURSE_SET' | 'SEMESTER' | 'ProgressActivity' | string;
+
+export interface ConfigOption {
+  id: string;
+  OptionType: OptionType;
+  OptionValue: string;
+  OptionDescription?: string;
+}
+
+export interface ActivityLog {
+  LogID: string;
+  Timestamp: string;
+  Action: string;
+  UserID: string;
+  Details: string;
+}
+
+// Complete rich schema reflecting the TU Nursing PhD Portfolio screenshots
+export interface StudentPortfolioData {
+  academicBackground: { degree: string; field: string; institution: string; year: string }[];
+  professionalBackground: { period: string; role: string; remarks: string }[];
+  programOfStudyName?: string;
+  programCourses?: { semester: string; code: string; title: string; credits: string; status: 'Not Started' | 'In Progress' | 'Completed' }[];
+  learningPlans?: { competency: string; description: string; targetDate: string; status: 'Not Started' | 'In Progress' | 'Completed'; activities: string }[];
+  milestones: { key: string; label: string; plannedDate: string; actualDate: string; remarks: string; status: 'Not Started' | 'In Progress' | 'Completed' }[];
+  englishTest: { testName: string; dateTaken: string; scoreAchieved: string; requiredScore: string; status: string; evidence: string };
+  englishActivities: { date: string; activity: string; organizer: string; description: string; evidence: string }[];
+  englishReflection: string;
+  completedCourses: { code: string; title: string; semester: string; credits: string; grade: string }[];
+  keyLearnings: { course: string; keyLearning: string; application: string }[];
+  workshops: { date: string; title: string; organizer: string; role: string; keyLearning: string }[];
+  dissertationInfo: { title: string; background: string; problem: string; objectives: string; hypotheses: string; conceptualFramework: string; methodology: string; researchTopic?: string };
+  dissertationProgress: { activity: string; date: string; progress: string; obstacles?: string; evidence: any }[];
+  advisorMeetings: { date: string; persons: string; issues: string; actionPoints: string }[];
+  ethicsGovernance: { dateApplied: string; dateApproved: string; approvalNumber: string; amendments: string; confidentiality: string };
+  researchExperience: { date: string; activity: string; description: string; hours: number; supervisor: string; evidence: string }[];
+  researchReflection: string;
+  conferencePresentations: { date: string; title: string; conference: string; type: string; venue: string }[];
+  publications: { year: string; title: string; journal: string; status: string; doi: string }[];
+  manuscripts: { title: string; journal: string; stage: string; plannedSubmission: string }[];
+  grants: { title: string; source: string; role: string; amount: string; period: string }[];
+  awards: { date: string; award: string; organizer: string; description: string }[];
+  teachingExperiences: { semester: string; course: string; role: string; studentLevel: string; description: string }[];
+  supervisions: { date: string; type: string; studentLevel: string; description: string }[];
+  academicServices: { date: string; activity: string; role: string; organization: string }[];
+  leaderships: { date: string; role: string; organization: string; responsibilities: string }[];
+  competencySelfAssessment: { competency: string; rating: 'Beginning' | 'Developing' | 'Competent' | 'Proficient'; remarks: string }[];
+  annualReview: { achievements: string; improvements: string; actionPlans: { goal: string; steps: string; timeline: string; support: string }[] };
+  futureCareer: { shortTerm: string; longTerm: string; preparation: string };
+  advisorComments: string;
+  reflectionAcademicGrowth?: string;
+  reflectionResearchIdentity?: string;
+  reflectionChallengesResilience?: string;
+  reflectionTransformation?: string;
+  endorsements: { role: string; name: string; signatureDate: string }[];
+  englishVerification?: {
+    comments: string;
+    name: string;
+    signatureDate: string;
+  };
+  supportingFiles?: { name: string; url: string; title?: string; date?: string; description?: string }[];
 }
 
 export interface ChatMessage {
   MessageID: string;
-  ThreadID: string;
-  SenderUserID: string;
-  ReceiverUserID: string;
-  StudentUserID: string;
+  SenderID: string;
+  SenderName: string;
+  ReceiverID: string; // Target StudentID or Advisor UserID
   MessageText: string;
-  FileName: string;
-  FileURL: string;
-  IsRead: string;
-  CreatedAt: string;
+  Attachment?: string;
+  AttachmentName?: string;
+  Timestamp: string;
 }
 
-export interface Setting {
-  SettingKey: string;
-  SettingValue: string;
-  Description: string;
-  Example: string;
-  Options: string;
-  UpdatedAt: string;
-  UpdatedBy: string;
+export interface Notification {
+  NotificationID: string;
+  SenderID: string;
+  SenderName: string;
+  ReceiverID: string; // Target StudentID or Advisor UserID
+  Title: string;
+  MessageText: string;
+  Attachment?: string;
+  AttachmentName?: string;
+  Timestamp: string;
+  IsRead: boolean;
 }
 
-export interface AppState {
-  currentUser: User | null;
-  data: {
-    users: User[];
-    portfolioRecords: PortfolioRecord[];
-    studentProfiles: StudentProfile[];
-    dissertations: Dissertation[];
-    researchHours: ResearchHour[];
-    competencyAssessments: CompetencyAssessment[];
-    advisorComments: AdvisorComment[];
-    endorsements: Endorsement[];
-    evidence: Evidence[];
-    notifications: Notification[];
-    chatMessages: ChatMessage[];
-    settings: Setting[];
-  } | null;
-  selectedStudentId: string | null;
-  currentPage: string;
-}
