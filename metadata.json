@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Doctoral Student Portfolio",
+  "description": "A comprehensive portfolio management, advisory tracking, and reflection logging system for PhD students, advisors, and administrators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
