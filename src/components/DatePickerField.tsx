@@ -271,7 +271,7 @@ export default function DatePickerField({
           onChange={handleTextChange}
           onBlur={handleBlur}
           required={required}
-          className={`w-full pr-10 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm disabled:opacity-75 focus:outline-tu-red transition-all duration-200 ${className}`}
+          className={`w-full pr-10 pl-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl text-sm disabled:opacity-75 focus:outline-tu-red transition-all duration-200 ${className}`}
         />
         
         {/* Hidden HTML Date Picker triggerable by the calendar button */}

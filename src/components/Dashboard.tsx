@@ -44,6 +44,7 @@ export default function Dashboard({
   // Sum of research experience hours (from portfolioData)
   const completedHours = researchExperience.reduce((sum, item) => sum + (item?.hours || 0), 0);
   const targetHours = 180;
+  const remainingHours = Math.max(0, targetHours - completedHours);
   const hoursPercent = Math.min(100, Math.round((completedHours / targetHours) * 100));
 
   // Count completed milestones
@@ -374,9 +375,22 @@ export default function Dashboard({
               </span>
             </div>
             
-            <div className="flex items-baseline space-x-2">
-              <span className="text-4xl font-extrabold text-gray-900 font-mono">{completedHours}</span>
-              <span className="text-sm text-gray-500">/ {targetHours} Hours Required</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline space-x-2">
+                <span className="text-4xl font-extrabold text-gray-900 font-mono">{completedHours}</span>
+                <span className="text-sm text-gray-500">/ {targetHours} Hours Required</span>
+              </div>
+              <div className="text-xs font-semibold text-tu-red flex items-center gap-1.5 mt-0.5">
+                {remainingHours > 0 ? (
+                  <span className="bg-red-50 text-tu-red px-2 py-0.5 rounded-md border border-red-100 text-[11px]">
+                    (ต้องเก็บเพิ่มอีก {remainingHours} ชม. / {remainingHours} hrs remaining)
+                  </span>
+                ) : (
+                  <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100 text-[11px]">
+                    ✓ ครบตามกำหนด 180 ชม. แล้ว
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Circular representation or bar */}

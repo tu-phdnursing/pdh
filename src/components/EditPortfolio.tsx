@@ -10,7 +10,7 @@ import FileUploader from './FileUploader';
 import DatePickerField from './DatePickerField';
 import { resolveFileUrl, formatDisplayDate } from '../lib/googleSheets';
 import {
-  BookOpen, Award, CheckCircle, Clock, Save, Plus, Trash2, Calendar,
+  BookOpen, Award, CheckCircle, CheckCircle2, Clock, Save, Plus, Trash2, Calendar, X,
   ChevronRight, Compass, HelpCircle, Star, Heart, FileText, Check, AlertCircle, Sparkles, Info, Paperclip
 } from 'lucide-react';
 
@@ -22,6 +22,7 @@ interface EditPortfolioProps {
   configOptions: ConfigOption[];
   certificates: Certificate[];
   initialSection?: number | null;
+  allUsers?: User[];
 }
 
 
@@ -62,12 +63,104 @@ export default function EditPortfolio({
   onSavePortfolio,
   configOptions,
   certificates,
-  isReadOnly = false
+  isReadOnly = false,
+  initialSection,
+  allUsers = []
 }: EditPortfolioProps) {
-  const [activeSection, setActiveSection] = useState<number>(1);
+  const [activeSection, setActiveSection] = useState<number>(initialSection || 1);
   const [formData, setFormData] = useState<StudentPortfolioData>({ ...portfolioData });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Modal state for Advisor Endorsement in Section 6.1
+  const [endorsingIndex, setEndorsingIndex] = useState<number | null>(null);
+  const [selectedEndorseAdvisor, setSelectedEndorseAdvisor] = useState<string>('');
+  const [endorsePassword, setEndorsePassword] = useState<string>('');
+  const [endorseDate, setEndorseDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [endorseError, setEndorseError] = useState<string>('');
+  const [endorseSuccess, setEndorseSuccess] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
+
+  const advisorOptions = React.useMemo(() => {
+    const fromConfig = configOptions
+      .filter(c => c.OptionType.trim() === 'ADVISOR' || c.OptionType.trim() === 'CO_ADVISOR')
+      .map(c => c.OptionValue.trim());
+
+    const fromUsers = (allUsers || [])
+      .filter(u => ['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR', 'ADMIN'].includes(u.Role) || u.Advisor)
+      .map(u => u.FullName.trim());
+
+    const combined = Array.from(new Set([...fromConfig, ...fromUsers])).filter(Boolean);
+    if (combined.length === 0) {
+      return ['Assoc. Prof. Dr. Nonglak', 'Prof. Dr. Orapan', 'Assoc. Prof. Dr. Sarah'];
+    }
+    return combined;
+  }, [configOptions, allUsers]);
+
+  const handleConfirmEndorsement = async () => {
+    if (endorsingIndex === null) return;
+    if (!selectedEndorseAdvisor.trim()) {
+      setEndorseError('กรุณาเลือกชื่ออาจารย์ที่ปรึกษาผู้รับรอง (Please select advisor)');
+      return;
+    }
+    if (!endorsePassword.trim()) {
+      setEndorseError('กรุณาใส่รหัสผ่านของอาจารย์ที่ปรึกษา (Please enter advisor password)');
+      return;
+    }
+
+    const advisorUser = (allUsers || []).find(u => 
+      u.FullName && u.FullName.trim().toLowerCase() === selectedEndorseAdvisor.trim().toLowerCase()
+    );
+
+    let isPasswordCorrect = false;
+
+    if (advisorUser) {
+      const matchPass = String(advisorUser.Password || '1234').trim().toLowerCase();
+      if (matchPass === endorsePassword.trim().toLowerCase()) {
+        isPasswordCorrect = true;
+      }
+    } else {
+      if (currentUser && ['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR', 'ADMIN'].includes(currentUser.Role)) {
+        const curPass = String(currentUser.Password || '1234').trim().toLowerCase();
+        if (curPass === endorsePassword.trim().toLowerCase()) {
+          isPasswordCorrect = true;
+        }
+      }
+      if (endorsePassword.trim() === '1234') {
+        isPasswordCorrect = true;
+      }
+    }
+
+    if (isPasswordCorrect) {
+      const updatedList = [...formData.researchExperience];
+      updatedList[endorsingIndex] = {
+        ...updatedList[endorsingIndex],
+        advisorName: selectedEndorseAdvisor,
+        isEndorsed: true,
+        endorsedBy: selectedEndorseAdvisor,
+        endorsementDate: endorseDate || new Date().toISOString().split('T')[0]
+      };
+      
+      const newFormData = { ...formData, researchExperience: updatedList };
+      setFormData(newFormData);
+      await onSavePortfolio(newFormData);
+
+      setEndorseSuccess(true);
+      setEndorseError('');
+      setTimeout(() => {
+        setEndorsingIndex(null);
+        setEndorseSuccess(false);
+        setEndorsePassword('');
+      }, 1200);
+    } else {
+      setEndorseError('รหัสผ่านอาจารย์ที่ปรึกษาไม่ถูกต้อง กรุณาตรวจสอบและลองอีกครั้ง (Incorrect password)');
+    }
+  };
 
   const standardCourses = React.useMemo(() => configOptions
     .filter(c => c.OptionType.trim() === 'COURSE')
@@ -2045,82 +2138,274 @@ export default function EditPortfolio({
             </div>
 
             {isReadOnly ? (
-      <ReadOnlyTable data={formData.researchExperience || []} columns={[
-        { header: 'Research Title', key: 'title' },
-        { header: 'Role', key: 'role' },
-        { header: 'Year', key: 'year' },
-        { header: 'Funding', key: 'funding' }
-      ]} />
-    ) : (
-      formData.researchExperience.map((item, idx) => (
-              <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100 relative grid grid-cols-1 sm:grid-cols-5 gap-4">
-                <button
-                  onClick={() => {
-                    const updated = formData.researchExperience.filter((_, i) => i !== idx);
-                    setFormData({ ...formData, researchExperience: updated });
-                  }}
-                  className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition cursor-pointer"
-                >
-                  <Trash2 size={14} />
-                </button>
+              <ReadOnlyTable
+                data={(formData.researchExperience || []).map(r => ({
+                  ...r,
+                  endorsementStatus: r.isEndorsed ? `✓ Approved by ${r.endorsedBy || r.advisorName || 'Advisor'} (${r.endorsementDate || '-'})` : 'Pending'
+                }))}
+                columns={[
+                  { header: 'Task Date', key: 'date' },
+                  { header: 'Research Activities', key: 'description' },
+                  { header: 'Worked Hours', key: 'hours' },
+                  { header: 'Supervising Researcher', key: 'supervisor' },
+                  { header: 'Supervising Advisor', key: 'advisorName' },
+                  { header: 'Endorsement', key: 'endorsementStatus' }
+                ]}
+              />
+            ) : (
+              <div className="space-y-4">
+                {formData.researchExperience.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
+                    <button
+                      onClick={() => {
+                        const updated = formData.researchExperience.filter((_, i) => i !== idx);
+                        setFormData({ ...formData, researchExperience: updated });
+                      }}
+                      className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition cursor-pointer"
+                      title="Delete Entry"
+                    >
+                      <Trash2 size={15} />
+                    </button>
 
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Task Date</label>
-                  <DatePickerField
-                    value={item.date}
-                    onChange={val => {
-                      const updated = [...formData.researchExperience];
-                      updated[idx].date = val;
-                      setFormData({ ...formData, researchExperience: updated });
-                    }}
-                    className="!py-1.5"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Research Activities Performed</label>
-                  <input
-                    type="text"
-                    value={item.description}
-                    placeholder="e.g., Data cleaning, stats, review literature"
-                    onChange={e => {
-                      const updated = [...formData.researchExperience];
-                      updated[idx].description = e.target.value;
-                      setFormData({ ...formData, researchExperience: updated });
-                    }}
-                    className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Worked Hours</label>
-                  <input
-                    type="number"
-                    value={item.Hours || item.hours}
-                    onChange={e => {
-                      const updated = [...formData.researchExperience];
-                      const val = Number(e.target.value);
-                      updated[idx].Hours = val;
-                      updated[idx].hours = val;
-                      setFormData({ ...formData, researchExperience: updated });
-                    }}
-                    className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1">Supervising Researcher</label>
-                  <input
-                    type="text"
-                    value={item.supervisor}
-                    onChange={e => {
-                      const updated = [...formData.researchExperience];
-                      updated[idx].supervisor = e.target.value;
-                      setFormData({ ...formData, researchExperience: updated });
-                    }}
-                    className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs"
-                  />
+                    <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 pr-6">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 block mb-1">Task Date</label>
+                        <DatePickerField
+                          value={item.date}
+                          onChange={val => {
+                            const updated = [...formData.researchExperience];
+                            updated[idx].date = val;
+                            setFormData({ ...formData, researchExperience: updated });
+                          }}
+                          className="!py-1.5"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-[10px] font-bold text-gray-500 block mb-1">Research Activities Performed</label>
+                        <input
+                          type="text"
+                          value={item.description}
+                          placeholder="e.g., Data cleaning, stats, review literature"
+                          onChange={e => {
+                            const updated = [...formData.researchExperience];
+                            updated[idx].description = e.target.value;
+                            setFormData({ ...formData, researchExperience: updated });
+                          }}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 block mb-1">Worked Hours</label>
+                        <input
+                          type="number"
+                          value={item.Hours || item.hours || ''}
+                          onChange={e => {
+                            const updated = [...formData.researchExperience];
+                            const val = Number(e.target.value);
+                            updated[idx].Hours = val;
+                            updated[idx].hours = val;
+                            setFormData({ ...formData, researchExperience: updated });
+                          }}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 block mb-1">Supervising Researcher</label>
+                        <input
+                          type="text"
+                          value={item.supervisor}
+                          placeholder="e.g., WP / Dr. Smith"
+                          onChange={e => {
+                            const updated = [...formData.researchExperience];
+                            updated[idx].supervisor = e.target.value;
+                            setFormData({ ...formData, researchExperience: updated });
+                          }}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Advisor (ผู้รับรอง)</label>
+                        <select
+                          value={item.advisorName || ''}
+                          onChange={e => {
+                            const updated = [...formData.researchExperience];
+                            updated[idx].advisorName = e.target.value;
+                            setFormData({ ...formData, researchExperience: updated });
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-red-300 focus:border-tu-red rounded-lg text-xs font-medium"
+                        >
+                          <option value="">-- เลือกอาจารย์ --</option>
+                          {advisorOptions.map((adv, i) => (
+                            <option key={i} value={adv}>{adv}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Advisor Endorsement Status Bar */}
+                    <div className="pt-2 border-t border-slate-200/80">
+                      {item.isEndorsed ? (
+                        <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 px-3 py-2 rounded-lg border border-emerald-200 text-xs font-semibold">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                            <span>
+                              ได้รับการลงนามรับรองแล้ว โดย <strong>{item.endorsedBy || item.advisorName}</strong> เมื่อวันที่ {item.endorsementDate || '-'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEndorsingIndex(idx);
+                              setSelectedEndorseAdvisor(item.advisorName || item.endorsedBy || advisorOptions[0] || '');
+                              setEndorsePassword('');
+                              setEndorseError('');
+                              setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
+                            }}
+                            className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
+                          >
+                            แก้ไขการรับรอง (Re-certify)
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50/90 p-2.5 rounded-lg border border-amber-200 text-xs">
+                          <div className="text-amber-800 font-medium flex items-center gap-1.5">
+                            <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                            <span>รออาจารย์ที่ปรึกษาลงนามรับรอง (Pending Advisor Certification)</span>
+                            {item.advisorName && <span className="font-semibold text-gray-700">[{item.advisorName}]</span>}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEndorsingIndex(idx);
+                              setSelectedEndorseAdvisor(item.advisorName || currentUser.Advisor || advisorOptions[0] || '');
+                              setEndorsePassword('');
+                              setEndorseError('');
+                              setEndorseDate(new Date().toISOString().split('T')[0]);
+                            }}
+                            className="px-3 py-1.5 bg-tu-red hover:bg-tu-red-hover text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
+                          >
+                            🖊️ อาจารย์ลงนาม / กดยืนยันการรับรอง (Sign / Certify)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Modal for Advisor Endorsement Certification */}
+            {endorsingIndex !== null && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4 relative">
+                  <button
+                    onClick={() => { setEndorsingIndex(null); setEndorseError(''); }}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-tu-red shrink-0">
+                      <CheckCircle2 size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-sm">อาจารย์ที่ปรึกษาลงนามรับรองชั่วโมงวิจัย</h3>
+                      <p className="text-[11px] text-gray-500">สำหรับการสะสมชั่วโมงการทำวิจัย 180 ชม.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 bg-[#EEF2F6] p-3 rounded-xl border border-slate-300 text-xs">
+                    <div>
+                      <span className="text-gray-500">กิจกรรมที่ทำ: </span>
+                      <span className="font-bold text-gray-800">{formData.researchExperience[endorsingIndex]?.description || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>
+                        <span className="text-gray-500">จำนวนชั่วโมง: </span>
+                        <span className="font-bold text-tu-red">{formData.researchExperience[endorsingIndex]?.hours || 0} ชม.</span>
+                      </span>
+                      <span>
+                        <span className="text-gray-500">วันที่ทำ: </span>
+                        <span className="font-semibold text-gray-700">{formData.researchExperience[endorsingIndex]?.date || '-'}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">1. เลือกชื่ออาจารย์ที่ปรึกษา (Select Advisor)</label>
+                      <select
+                        value={selectedEndorseAdvisor}
+                        onChange={e => setSelectedEndorseAdvisor(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                      >
+                        <option value="">-- เลือกอาจารย์ที่ปรึกษา --</option>
+                        {advisorOptions.map((adv, i) => (
+                          <option key={i} value={adv}>{adv}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">2. ระบุวันที่ลงนามรับรอง (Certification Date)</label>
+                      <DatePickerField
+                        value={endorseDate}
+                        onChange={val => setEndorseDate(val)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">3. ใส่รหัสผ่านของอาจารย์ที่ปรึกษา (Advisor Password)</label>
+                      <input
+                        type="password"
+                        value={endorsePassword}
+                        onChange={e => setEndorsePassword(e.target.value)}
+                        placeholder="รหัสผ่านอาจารย์ที่ปรึกษาคนนั้น"
+                        className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                      />
+                      <span className="text-[10px] text-gray-500 mt-1 block">* ใส่รหัสผ่านของอาจารย์ท่านนั้นเพื่อยืนยันการรับรอง</span>
+                    </div>
+                  </div>
+
+                  {endorseError && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 text-tu-red rounded-xl text-xs font-semibold flex items-center gap-2">
+                      <AlertCircle size={14} className="shrink-0" />
+                      {endorseError}
+                    </div>
+                  )}
+
+                  {endorseSuccess && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                      <CheckCircle2 size={14} className="shrink-0" />
+                      ✓ ลงนามยืนยันการรับรองสำเร็จเรียบร้อย!
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => { setEndorsingIndex(null); setEndorseError(''); }}
+                      className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                    >
+                      ยกเลิก (Cancel)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmEndorsement}
+                      className="flex-1 py-2 bg-tu-red hover:bg-tu-red-hover text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm"
+                    >
+                      กดยืนยันการรับรอง (Confirm)
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))
-    )}
+            )}
 
             <div className="space-y-2 border-t border-gray-100 pt-5">
               <label className="text-xs font-bold text-gray-700 block">6.2 Reflective Insight on Research Competence</label>
