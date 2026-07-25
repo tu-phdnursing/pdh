@@ -1224,7 +1224,7 @@ function getOrCreateSheet(sheetName) {
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     var schemas = {
-      "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password"],
+      "Users": ["UserID", "Email", "FullName", "Role", "StudentID", "Major", "Advisor", "CoAdvisor", "ThesisTitle", "LineID", "DateOfSubmission", "ResearchInterests", "ExpectedGraduationYear", "YearOfAdmission", "PhotoURL", "AdditionalPhotos", "Password", "Status"],
       "Certificates": ["CertID", "StudentID", "Name", "Date", "Category", "ImageURL", "Status", "ApprovedBy", "Feedback"],
       "Activities": ["ActivityID", "StudentID", "Title", "Date", "Description", "ImagesURL", "Status", "ApprovedBy", "Feedback"],
       "ConfigOptions": ["id", "OptionType", "OptionValue"],
