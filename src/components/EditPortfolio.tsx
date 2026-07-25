@@ -2214,7 +2214,7 @@ export default function EditPortfolio({
 
                       {/* Merged Supervising Advisor / Researcher Dropdown Field */}
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Researcher / Advisor (อาจารย์ผู้รับรอง)</label>
+                        <label className="text-[10px] font-bold text-tu-red block mb-1">Supervising Researcher / Advisor</label>
                         <select
                           disabled={Boolean(item.isEndorsed)}
                           value={item.advisorName || item.supervisor || ''}
@@ -2231,14 +2231,14 @@ export default function EditPortfolio({
                               : 'border-red-300 focus:border-tu-red focus:ring-1 focus:ring-tu-red'
                           }`}
                         >
-                          <option value="">-- เลือกอาจารย์ที่ปรึกษา / ผู้รับรอง --</option>
+                          <option value="">-- Select Supervising Advisor --</option>
                           {advisorOptions.map((adv, i) => (
                             <option key={i} value={adv}>{adv}</option>
                           ))}
                         </select>
                         {item.isEndorsed && (
                           <span className="text-[10px] font-medium text-emerald-700 mt-0.5 block">
-                            🔒 อาจารย์ลงนามแล้ว (ล็อคการแก้ไขชื่ออาจารย์)
+                            🔒 Certified (Advisor Selection Locked)
                           </span>
                         )}
                       </div>
@@ -2247,7 +2247,7 @@ export default function EditPortfolio({
                     {/* Evidence / Attachments for Research Entry */}
                     <div className="pt-2 border-t border-slate-200/60">
                       <label className="text-[10px] font-bold text-gray-500 block mb-1">
-                        Attached Evidence / Files (เอกสารหลักฐานประกอบ)
+                        Attached Evidence / Files
                       </label>
                       <FileUploader
                         isReadOnly={isReadOnly}
@@ -2284,7 +2284,7 @@ export default function EditPortfolio({
                           <div className="flex items-center gap-2">
                             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                             <span>
-                              ได้รับการลงนามรับรองแล้ว โดย <strong>{item.endorsedBy || item.advisorName || item.supervisor}</strong> เมื่อวันที่ {item.endorsementDate || '-'}
+                              Certified by <strong>{item.endorsedBy || item.advisorName || item.supervisor}</strong> on {item.endorsementDate || '-'}
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
@@ -2299,7 +2299,7 @@ export default function EditPortfolio({
                               }}
                               className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
                             >
-                              แก้ไขการรับรอง (Re-certify)
+                              Re-certify
                             </button>
                             <button
                               type="button"
@@ -2314,7 +2314,7 @@ export default function EditPortfolio({
                               }}
                               className="text-[11px] text-red-600 underline hover:text-red-800 cursor-pointer"
                             >
-                              ยกเลิกการยืนยัน (Cancel Endorsement)
+                              Cancel Endorsement
                             </button>
                           </div>
                         </div>
@@ -2322,7 +2322,7 @@ export default function EditPortfolio({
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50/90 p-2.5 rounded-lg border border-amber-200 text-xs">
                           <div className="text-amber-800 font-medium flex items-center gap-1.5">
                             <AlertCircle size={14} className="text-amber-600 shrink-0" />
-                            <span>รออาจารย์ที่ปรึกษาลงนามรับรอง (Pending Advisor Certification)</span>
+                            <span>Pending Advisor Certification</span>
                             {(item.advisorName || item.supervisor) && <span className="font-semibold text-gray-700">[{item.advisorName || item.supervisor}]</span>}
                           </div>
 
@@ -2337,7 +2337,7 @@ export default function EditPortfolio({
                             }}
                             className="px-3 py-1.5 bg-tu-red hover:bg-tu-red-hover text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
                           >
-                            🖊️ อาจารย์ลงนาม / กดยืนยันการรับรอง (Sign / Certify)
+                            🖊️ Sign / Certify Hours
                           </button>
                         </div>
                       )}
@@ -2363,23 +2363,23 @@ export default function EditPortfolio({
                       <CheckCircle2 size={22} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-sm">อาจารย์ที่ปรึกษาลงนามรับรองชั่วโมงวิจัย</h3>
-                      <p className="text-[11px] text-gray-500">สำหรับการสะสมชั่วโมงการทำวิจัย 180 ชม.</p>
+                      <h3 className="font-bold text-gray-900 text-sm">Advisor Endorsement Certification</h3>
+                      <p className="text-[11px] text-gray-500">Research Hours Requirement (180h Minimum)</p>
                     </div>
                   </div>
 
                   <div className="space-y-2 bg-[#EEF2F6] p-3 rounded-xl border border-slate-300 text-xs">
                     <div>
-                      <span className="text-gray-500">กิจกรรมที่ทำ: </span>
+                      <span className="text-gray-500">Activity: </span>
                       <span className="font-bold text-gray-800">{formData.researchExperience[endorsingIndex]?.description || '-'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>
-                        <span className="text-gray-500">จำนวนชั่วโมง: </span>
-                        <span className="font-bold text-tu-red">{formData.researchExperience[endorsingIndex]?.hours || 0} ชม.</span>
+                        <span className="text-gray-500">Hours: </span>
+                        <span className="font-bold text-tu-red">{formData.researchExperience[endorsingIndex]?.hours || 0} Hours</span>
                       </span>
                       <span>
-                        <span className="text-gray-500">วันที่ทำ: </span>
+                        <span className="text-gray-500">Date: </span>
                         <span className="font-semibold text-gray-700">{formData.researchExperience[endorsingIndex]?.date || '-'}</span>
                       </span>
                     </div>
@@ -2387,13 +2387,13 @@ export default function EditPortfolio({
 
                   <div className="space-y-3 text-xs">
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1">1. เลือกชื่ออาจารย์ที่ปรึกษา (Select Advisor)</label>
+                      <label className="block font-bold text-gray-700 mb-1">1. Select Advisor Name</label>
                       <select
                         value={selectedEndorseAdvisor}
                         onChange={e => setSelectedEndorseAdvisor(e.target.value)}
                         className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
                       >
-                        <option value="">-- เลือกอาจารย์ที่ปรึกษา --</option>
+                        <option value="">-- Select Supervising Advisor --</option>
                         {advisorOptions.map((adv, i) => (
                           <option key={i} value={adv}>{adv}</option>
                         ))}
@@ -2401,7 +2401,7 @@ export default function EditPortfolio({
                     </div>
 
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1">2. ระบุวันที่ลงนามรับรอง (Certification Date)</label>
+                      <label className="block font-bold text-gray-700 mb-1">2. Certification Date</label>
                       <DatePickerField
                         value={endorseDate}
                         onChange={val => setEndorseDate(val)}
@@ -2409,15 +2409,15 @@ export default function EditPortfolio({
                     </div>
 
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1">3. ใส่รหัสผ่านของอาจารย์ที่ปรึกษา (Advisor Password)</label>
+                      <label className="block font-bold text-gray-700 mb-1">3. Advisor Password</label>
                       <input
                         type="password"
                         value={endorsePassword}
                         onChange={e => setEndorsePassword(e.target.value)}
-                        placeholder="รหัสผ่านอาจารย์ที่ปรึกษาคนนั้น"
+                        placeholder="Enter advisor password"
                         className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
                       />
-                      <span className="text-[10px] text-gray-500 mt-1 block">* ใส่รหัสผ่านของอาจารย์ท่านนั้นเพื่อยืนยันการรับรอง</span>
+                      <span className="text-[10px] text-gray-500 mt-1 block">* Enter advisor password to confirm endorsement</span>
                     </div>
                   </div>
 
@@ -2431,7 +2431,7 @@ export default function EditPortfolio({
                   {endorseSuccess && (
                     <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
                       <CheckCircle2 size={14} className="shrink-0" />
-                      ✓ ลงนามยืนยันการรับรองสำเร็จเรียบร้อย!
+                      ✓ Endorsement certified successfully!
                     </div>
                   )}
 
@@ -2441,14 +2441,14 @@ export default function EditPortfolio({
                       onClick={() => { setEndorsingIndex(null); setEndorseError(''); }}
                       className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
                     >
-                      ยกเลิก (Cancel)
+                      Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleConfirmEndorsement}
                       className="flex-1 py-2 bg-tu-red hover:bg-tu-red-hover text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm"
                     >
-                      กดยืนยันการรับรอง (Confirm)
+                      Confirm Certification
                     </button>
                   </div>
                 </div>

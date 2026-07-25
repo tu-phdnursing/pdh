@@ -852,11 +852,11 @@ export default function PrintReport({
                     <td className="p-2.5 text-center">
                       {item.isEndorsed ? (
                         <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px] inline-block">
-                          ✓ ลงนามรับรองแล้ว ({item.endorsedBy || item.advisorName || item.supervisor})
+                          ✓ Certified ({item.endorsedBy || item.advisorName || item.supervisor})
                         </span>
                       ) : (
                         <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] inline-block">
-                          รอลงนามรับรอง
+                          Pending Endorsement
                         </span>
                       )}
                     </td>

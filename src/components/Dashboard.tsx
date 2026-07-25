@@ -383,13 +383,12 @@ export default function Dashboard({
               <div className="text-xs font-semibold text-tu-red flex items-center gap-1.5 mt-1">
                 {remainingHours > 0 ? (
                   <span className="bg-red-50 text-tu-red px-2.5 py-1 rounded-lg border border-red-200 text-xs font-semibold inline-flex items-center gap-1">
-                    <span>ต้องเก็บเพิ่มอีก:</span>
                     <strong className="font-mono text-sm text-red-700">{remainingHours}</strong>
-                    <span>ชั่วโมง (Remaining)</span>
+                    <span>Hours Remaining</span>
                   </span>
                 ) : (
                   <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200 text-xs font-bold flex items-center gap-1">
-                    ✓ สะสมครบตามกำหนด 180 ชม. แล้ว
+                    ✓ 180 Hours Completed
                   </span>
                 )}
               </div>
@@ -422,7 +421,7 @@ export default function Dashboard({
               }} 
               className="text-tu-red font-bold hover:underline cursor-pointer flex items-center gap-1"
             >
-              View Details (ดูรายละเอียดข้อ 6) →
+              View Details (Section 6) →
             </button>
           </div>
         </div>
