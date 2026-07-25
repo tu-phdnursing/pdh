@@ -397,32 +397,47 @@ export default function AdminPanel({
                     </div>
 
                     {newUserForm.Role === 'STUDENT' && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-3">
                         <div>
-                          <label className="font-semibold text-gray-500 block mb-1">Major Advisor</label>
+                          <label className="font-semibold text-gray-500 block mb-1">Major / Program (หลักสูตร)</label>
                           <select
-                            value={newUserForm.Advisor}
-                            onChange={e => setNewUserForm({ ...newUserForm, Advisor: e.target.value })}
+                            value={newUserForm.Major}
+                            onChange={e => setNewUserForm({ ...newUserForm, Major: e.target.value })}
                             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
                           >
-                            <option value="">Select Advisor...</option>
-                            {configOptions.filter(c => c.OptionType.trim() === 'ADVISOR').map(c => (
+                            <option value="">Select Major Program...</option>
+                            {configOptions.filter(c => ['DEGREE', 'MAJOR', 'PROGRAM'].includes(c.OptionType.trim())).map(c => (
                               <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="font-semibold text-gray-500 block mb-1">Co-Advisor</label>
-                          <select
-                            value={newUserForm.CoAdvisor}
-                            onChange={e => setNewUserForm({ ...newUserForm, CoAdvisor: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
-                          >
-                            <option value="">Select Co-Advisor...</option>
-                            {configOptions.filter(c => c.OptionType.trim() === 'CO_ADVISOR').map(c => (
-                              <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
-                            ))}
-                          </select>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-semibold text-gray-500 block mb-1">Major Advisor</label>
+                            <select
+                              value={newUserForm.Advisor}
+                              onChange={e => setNewUserForm({ ...newUserForm, Advisor: e.target.value })}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="">Select Advisor...</option>
+                              {configOptions.filter(c => c.OptionType.trim() === 'ADVISOR').map(c => (
+                                <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-semibold text-gray-500 block mb-1">Co-Advisor</label>
+                            <select
+                              value={newUserForm.CoAdvisor}
+                              onChange={e => setNewUserForm({ ...newUserForm, CoAdvisor: e.target.value })}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                            >
+                              <option value="">Select Co-Advisor...</option>
+                              {configOptions.filter(c => c.OptionType.trim() === 'CO_ADVISOR').map(c => (
+                                <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -527,7 +542,20 @@ export default function AdminPanel({
                     {editingUser.Role === 'STUDENT' && (
                       <div className="grid grid-cols-2 gap-3 bg-red-50/50 p-3 rounded-xl border border-red-100">
                         <div className="col-span-2 text-[10px] font-bold text-tu-red uppercase tracking-wide mb-1">
-                          🎓 Advisor Mapping (การจับคู่อาจารย์ที่ปรึกษา)
+                          🎓 Major & Advisor Mapping (หลักสูตรและการจับคู่อาจารย์)
+                        </div>
+                        <div className="col-span-2">
+                          <label className="font-semibold text-gray-600 block mb-1">Major / Program (หลักสูตร)</label>
+                          <select
+                            value={editingUser.Major || ''}
+                            onChange={e => setEditingUser({ ...editingUser, Major: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium"
+                          >
+                            <option value="">Select Major Program...</option>
+                            {configOptions.filter(c => ['DEGREE', 'MAJOR', 'PROGRAM'].includes(c.OptionType.trim())).map(c => (
+                              <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="font-semibold text-gray-600 block mb-1">Major Advisor</label>
@@ -542,7 +570,7 @@ export default function AdminPanel({
                               <option key={c.id} value={c.OptionValue}>{c.OptionValue}</option>
                             ))}
                             {/* Option 2: From advisors users */}
-                            {users.filter(u => u.Role === 'ADVISOR' || u.Role === 'SUPER_ADVISOR').map(u => (
+                            {users.filter(u => u.Role === 'ADVISOR').map(u => (
                               <option key={u.UserID} value={u.FullName}>{u.FullName}</option>
                             ))}
                           </select>
