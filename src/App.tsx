@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Award, BookOpen, Clock, FileText, Settings, Users, LogOut, KeyRound,
   HelpCircle, RefreshCw, Layers, CheckCircle2, AlertCircle, Sparkles, GraduationCap,
-  MessageSquare, Bell, UserPlus, Database
+  MessageSquare, Bell, UserPlus, Database, Loader2
 } from 'lucide-react';
 
 // Import Types
@@ -148,8 +148,15 @@ export default function App() {
   // Sync portfolio on student change
   useEffect(() => {
     if (currentUser && currentUser.Role === 'STUDENT') {
+      setSyncStatus('syncing');
       getStudentPortfolio(currentUser.StudentID || '6601010024').then(port => {
         setStudentPortfolio(port);
+        setSyncStatus('success');
+        setTimeout(() => setSyncStatus('idle'), 1500);
+      }).catch(err => {
+        console.error("Failed fetching student portfolio:", err);
+        setSyncStatus('failed');
+        setTimeout(() => setSyncStatus('idle'), 2500);
       });
     } else {
       setStudentPortfolio(null);
@@ -1263,27 +1270,42 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Prominent Data Sync / Fetch Loading Modal Overlay */}
+      {syncStatus === 'syncing' && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200 no-print">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-red-100 max-w-sm w-full flex flex-col items-center text-center space-y-4 relative">
+            <div className="w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-tu-red shrink-0 shadow-inner">
+              <Loader2 size={32} className="animate-spin text-tu-red" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-extrabold text-gray-900 text-base">กำลังดึงข้อมูลระบบ (Fetching Live Data)</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                ระบบกำลังเชื่อมต่อดึงข้อมูลล่าสุดจาก Google Sheets (อาจใช้เวลาประมาณ 5 - 15 วินาที)
+              </p>
+            </div>
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+              <div className="bg-tu-red h-full rounded-full animate-pulse w-3/4" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating Progress Indicators */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 no-print">
-        {syncStatus !== 'idle' && (
+        {syncStatus !== 'idle' && syncStatus !== 'syncing' && (
           <div
             className={`px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold border transition duration-250 ${
-              syncStatus === 'syncing' ? 'bg-[#FAF6EC] text-amber-700 border-amber-200' :
               syncStatus === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
               'bg-red-50 text-red-700 border-red-200'
             }`}
           >
-            {syncStatus === 'syncing' ? (
-              <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            ) : syncStatus === 'success' ? (
+            {syncStatus === 'success' ? (
               <span className="text-base text-emerald-600">✓</span>
             ) : (
               <span className="text-base text-red-600">⚠️</span>
             )}
             <span>
-              {syncStatus === 'syncing' ? 'กำลังดึงข้อมูล...' :
-               syncStatus === 'success' ? 'ดึงข้อมูลสำเร็จ' :
-               'ดึงข้อมูลล้มเหลว'}
+              {syncStatus === 'success' ? 'ดึงข้อมูลสำเร็จ (Data Synced)' : 'ดึงข้อมูลล้มเหลว'}
             </span>
           </div>
         )}
