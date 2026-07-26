@@ -853,8 +853,9 @@ export default function App() {
         </div>
 
         {/* Footer exactly styled from Image 2 */}
-        <div className="mt-8 text-center text-[10px] text-gray-400/80 font-medium">
-          Doctoral Student Portfolio Management System • Faculty of Nursing • Thammasat University
+        <div className="mt-8 text-center text-[10px] text-gray-400/80 font-medium space-y-1">
+          <div>Doctoral Student Portfolio Management System • Faculty of Nursing • Thammasat University</div>
+          <div>Designed and developed by Assistant Professor Dr. Jaruwan Kritpracha, Arpasree Buapradit</div>
         </div>
       </div>
     );
@@ -1299,9 +1300,12 @@ export default function App() {
 
       {/* Footer - Hidden during print */}
       <footer className="no-print bg-white border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 space-y-1">
           <p>© 2026 Faculty of Nursing, Thammasat University. All Rights Reserved.</p>
-          <p className="mt-1 font-mono text-[10px]">The system is fully responsive and synced with Google Sheets Database securely.</p>
+          <p className="font-mono text-[10px]">The system is fully responsive and synced with Google Sheets Database securely.</p>
+          <p className="text-[11px] text-gray-400/90 font-medium pt-0.5">
+            Designed and developed by Assistant Professor Dr. Jaruwan Kritpracha, Arpasree Buapradit
+          </p>
         </div>
       </footer>
 
