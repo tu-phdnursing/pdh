@@ -856,7 +856,7 @@ export default function App() {
         <div className="mt-8 text-center text-xs text-gray-900 font-semibold space-y-1">
           <div>© 2026 Faculty of Nursing, Thammasat University. All Rights Reserved.</div>
           <div className="text-[11px] text-gray-800 font-medium">
-            Designed and developed by Assistant Professor Dr. Jaruwan Kritpracha and Arpasree Buapradit (BSc in Pharm)
+            Designed and developed by Assistant Professor Dr. Charuwan Kritpracha and Arpasree Buapradit (BSc in Pharm)
           </div>
         </div>
       </div>
@@ -1305,7 +1305,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 space-y-1 font-medium">
           <p className="text-gray-900 font-bold text-xs">© 2026 Faculty of Nursing, Thammasat University. All Rights Reserved.</p>
           <p className="text-xs text-gray-800 font-medium pt-0.5">
-            Designed and developed by Assistant Professor Dr. Jaruwan Kritpracha and Arpasree Buapradit (BSc in Pharm)
+            Designed and developed by Assistant Professor Dr. Charuwan Kritpracha and Arpasree Buapradit (BSc in Pharm)
           </p>
         </div>
       </footer>
