@@ -1,5 +1,30 @@
+/**
+ * Google Apps Script Web App for Thammasat University Nursing PhD Portfolio
+ *
+ * INSTRUCTIONS:
+ * 1. Open Extensions > Apps Script in your Google Sheet.
+ * 2. Replace all code in Code.gs with this script.
+ * 3. Run the "setupDatabase" function once inside the Apps Script editor to create all sheets with columns and sample rows!
+ * 4. Deploy as a Web App:
+ *    - Execute as: "Me" (your email)
+ *    - Who has access: "Anyone"
+ * 5. Copy the generated Web App URL and paste it into System Settings panel.
+ */
+
+function getSpreadsheet() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) return ss;
+  } catch (e) {}
+  try {
+    return SpreadsheetApp.openById("1eAnp9C-qecp4RMM_L5mQyHDRQ3GtLCzXFqNm9-RHfqc");
+  } catch (err) {
+    return null;
+  }
+}
+
 function doGet(e) {
-  var type = e.parameter.type || e.parameter.action;
+  var type = e.parameter ? (e.parameter.type || e.parameter.action) : '';
   
   if (type === 'forgotPassword') {
     return handleForgotPassword(e.parameter.email);
@@ -9,207 +34,366 @@ function doGet(e) {
     return handleRegisterEmail(e.parameter.email, e.parameter.password, e.parameter.name);
   }
 
-  // Handle other types like users, certificates, activities, configOptions
-  var sheetName = getSheetName(type);
-  if (!sheetName) {
-    return ContentService.createTextOutput(JSON.stringify({ error: "Invalid type" })).setMimeType(ContentService.MimeType.JSON);
+  var ss = getSpreadsheet();
+  var sheet = null;
+  var data = [];
+
+  try {
+    if (type === 'users') {
+      sheet = getOrCreateSheet('Users');
+      data = getSheetDataAsJson(sheet);
+    } else if (type === 'certificates') {
+      sheet = getOrCreateSheet('Certificates');
+      var raw = getSheetDataAsJson(sheet);
+      data = raw.map(function(item) {
+        item.IsVerified = item.IsVerified === 'true' || item.IsVerified === true;
+        return item;
+      });
+    } else if (type === 'activities') {
+      sheet = getOrCreateSheet('Activities');
+      var raw = getSheetDataAsJson(sheet);
+      data = raw.map(function(item) {
+        item.IsVerified = item.IsVerified === 'true' || item.IsVerified === true;
+        if (typeof item.ImagesURL === 'string' && item.ImagesURL.trim()) {
+          try {
+            item.ImagesURL = JSON.parse(item.ImagesURL);
+          } catch(e) {
+            item.ImagesURL = [];
+          }
+        } else {
+          item.ImagesURL = [];
+        }
+        return item;
+      });
+    } else if (type === 'configOptions') {
+      sheet = getOrCreateSheet('ConfigOptions');
+      data = getSheetDataAsJson(sheet);
+    } else if (type === 'chats') {
+      sheet = getOrCreateSheet('Chats');
+      data = getSheetDataAsJson(sheet);
+    } else if (type === 'notifications') {
+      sheet = getOrCreateSheet('Notifications');
+      var raw = getSheetDataAsJson(sheet);
+      data = raw.map(function(item) {
+        item.IsRead = item.IsRead === 'true' || item.IsRead === true;
+        return item;
+      });
+    } else if (type === 'portfolio') {
+      var studentId = e.parameter.studentId;
+      var portData = loadPortfolioFromSheets(studentId);
+      return ContentService.createTextOutput(JSON.stringify(portData))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else if (type === 'allPortfolios') {
+      var usersSheet = getOrCreateSheet('Users');
+      var usersData = getSheetDataAsJson(usersSheet);
+      var allP = [];
+      for (var u = 0; u < usersData.length; u++) {
+        var stId = usersData[u].StudentID;
+        if (stId) {
+          var pData = loadPortfolioFromSheets(stId);
+          allP.push({ studentId: stId, portfolio: pData });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify(allP))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  if (!e || !e.postData || !e.postData.contents) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "No payload received" }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
   
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    
+    if (payload.action === 'uploadFile') {
+      return uploadFileToDrive(payload);
+    }
+    
+    if (payload.action === 'savePortfolio') {
+      return savePortfolioToSheets(payload.studentId, payload.portfolio);
+    }
+
+    var type = payload.type;
+    var dataObj = payload.data;
+    
+    if (!type || !dataObj) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Missing type or data" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var sheetName = getSheetNameForType(type);
+    var sheet = getOrCreateSheet(sheetName);
+    var idField = getIdFieldForType(type);
+    
+    upsertRow(sheet, idField, dataObj);
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Saved successfully" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getSheetNameForType(type) {
+  if (type === 'users') return 'Users';
+  if (type === 'certificates') return 'Certificates';
+  if (type === 'activities') return 'Activities';
+  if (type === 'configOptions') return 'ConfigOptions';
+  if (type === 'chats') return 'Chats';
+  if (type === 'notifications') return 'Notifications';
+  return 'Data';
+}
+
+function getIdFieldForType(type) {
+  if (type === 'users') return 'UserID';
+  if (type === 'certificates') return 'CertID';
+  if (type === 'activities') return 'ActID';
+  if (type === 'configOptions') return 'ConfigID';
+  if (type === 'chats') return 'ChatID';
+  if (type === 'notifications') return 'NotifID';
+  return 'ID';
+}
+
+function getOrCreateSheet(sheetName) {
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
-  
   if (!sheet) {
-    return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+    sheet = ss.insertSheet(sheetName);
   }
-  
+  return sheet;
+}
+
+function getSheetDataAsJson(sheet) {
+  if (!sheet) return [];
   var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  if (data.length <= 1) return [];
   
   var headers = data[0];
   var result = [];
   
   for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var isEmpty = true;
+    for (var k = 0; k < row.length; k++) {
+      if (row[k] !== "" && row[k] !== null && row[k] !== undefined) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) continue;
+
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = data[i][j];
+      if (headers[j]) {
+        obj[headers[j]] = row[j];
+      }
     }
     result.push(obj);
   }
-  
-  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  return result;
 }
 
-function doPost(e) {
-  if (!e.postData || !e.postData.contents) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "No payload" })).setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  var payload = JSON.parse(e.postData.contents);
-  
-  // Handle file uploads
-  if (payload.action === 'uploadFile') {
-    return uploadFileToDrive(payload);
-  }
-  
-  var type = payload.type;
-  var dataObj = payload.data;
-  
-  var sheetName = getSheetName(type);
-  if (!sheetName) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Invalid type" })).setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
-  
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
+function upsertRow(sheet, idField, dataObj) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length === 0) {
     var headers = Object.keys(dataObj);
     sheet.appendRow(headers);
+    data = [headers];
   }
   
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headers = data[0];
+  for (var key in dataObj) {
+    if (headers.indexOf(key) === -1) {
+      headers.push(key);
+      sheet.getRange(1, headers.length).setValue(key);
+    }
+  }
   
-  var idField = getIdField(type);
-  var data = sheet.getDataRange().getValues();
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  var idIndex = headers.indexOf(idField);
   var rowIndex = -1;
   
-  for (var i = 1; i < data.length; i++) {
-    var idIndex = headers.indexOf(idField);
-    if (idIndex > -1 && data[i][idIndex] === dataObj[idField]) {
-      rowIndex = i + 1;
-      break;
+  if (idIndex > -1 && data.length > 1) {
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(dataObj[idField])) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
   
-  var row = [];
+  var rowValues = [];
   for (var j = 0; j < headers.length; j++) {
-    var key = headers[j];
-    var val = dataObj[key];
-    if (typeof val === 'object') {
+    var h = headers[j];
+    var val = dataObj[h];
+    if (typeof val === 'object' && val !== null) {
       val = JSON.stringify(val);
     }
-    row.push(val !== undefined ? val : "");
+    rowValues.push(val !== undefined && val !== null ? val : "");
   }
   
   if (rowIndex > -1) {
-    sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
+    sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
   } else {
-    sheet.appendRow(row);
+    sheet.appendRow(rowValues);
   }
-  
-  return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function getSheetName(type) {
-  var map = {
-    'users': 'Users',
-    'certificates': 'Certificates',
-    'activities': 'Activities',
-    'configOptions': 'ConfigOptions',
-    'logs': 'ActivityLogs',
-    'portfolio': 'Portfolios',
-    'chats': 'Chats',
-    'notifications': 'Notifications'
-  };
-  return map[type];
-}
-
-function getIdField(type) {
-  var map = {
-    'users': 'UserID',
-    'certificates': 'CertID',
-    'activities': 'ActivityID',
-    'configOptions': 'id',
-    'logs': 'id',
-    'portfolio': 'StudentID',
-    'chats': 'id',
-    'notifications': 'id'
-  };
-  return map[type];
 }
 
 function uploadFileToDrive(payload) {
-  var mimeType = payload.mimeType;
-  var fileName = payload.fileName;
-  var fileData = payload.fileData; // base64
-  var studentId = payload.studentId || 'unknown';
-  var studentName = payload.studentName || 'Student';
-  var role = payload.role || 'STUDENT';
-  
-  var base64Data = fileData.split(',')[1] || fileData;
-  var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
-  
-  var parentFolderName = "PhD_Portfolio_Uploads";
-  var studentFolderName = studentId + " - " + studentName;
-  
-  var folders = DriveApp.getFoldersByName(parentFolderName);
-  var parentFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(parentFolderName);
-  
-  var studentFolders = parentFolder.getFoldersByName(studentFolderName);
-  var studentFolder = studentFolders.hasNext() ? studentFolders.next() : parentFolder.createFolder(studentFolderName);
-  
-  var file = studentFolder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  var fileUrl = file.getUrl();
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    success: true,
-    fileUrl: fileUrl,
-    fileId: file.getId()
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function handleForgotPassword(email) {
-  if (!email) return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Email missing' })).setMimeType(ContentService.MimeType.JSON);
-  
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Users");
-  if (!sheet) return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Sheet not found' })).setMimeType(ContentService.MimeType.JSON);
-  
-  var data = sheet.getDataRange().getValues();
-  var emailIdx = data[0].indexOf("Email");
-  var pwdIdx = data[0].indexOf("Password");
-  var nameIdx = data[0].indexOf("FullName");
-  
-  if (emailIdx === -1) return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
-  
-  var foundPwd = null;
-  var foundName = null;
-  
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][emailIdx].toString().trim().toLowerCase() === email.trim().toLowerCase()) {
-      foundPwd = pwdIdx > -1 ? data[i][pwdIdx] : '1234';
-      foundName = nameIdx > -1 ? data[i][nameIdx] : 'User';
-      break;
-    }
-  }
-  
-  if (foundPwd) {
-    try {
-      MailApp.sendEmail({
-        to: email,
-        subject: "Your PhD Portfolio System Password",
-        htmlBody: "Hello " + foundName + ",<br><br>Your password for the PhD Portfolio Management System is: <b>" + foundPwd + "</b><br><br>Please keep this safe.<br><br>Best regards,<br>Faculty of Nursing, Thammasat University"
-      });
-      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-    } catch(e) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, error: e.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function handleRegisterEmail(email, password, name) {
   try {
-    MailApp.sendEmail({
-      to: email,
-      subject: "Welcome to PhD Portfolio System",
-      htmlBody: "Hello " + (name || '') + ",<br><br>Welcome to the PhD Portfolio Management System!<br><br>Your account has been created successfully. You can log in using your email and the password you created.<br><br>Access the portal here: <b><a href='https://your-app-url-here.com'>Login to Portfolio</a></b><br><br>Best regards,<br>Faculty of Nursing, Thammasat University"
-    });
-    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-  } catch(e) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
+    var folderName = "TU_PhD_Portfolio_Uploads";
+    var folders = DriveApp.getFoldersByName(folderName);
+    var folder;
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+    }
+    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var base64Data = payload.fileData.split(',')[1] || payload.fileData;
+    var decoded = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(decoded, payload.mimeType || 'application/octet-stream', payload.fileName || 'file');
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var url = file.getUrl();
+    var downloadUrl = "https://lh3.googleusercontent.com/d/" + file.getId();
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      fileUrl: downloadUrl,
+      viewUrl: url,
+      fileId: file.getId()
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function loadPortfolioFromSheets(studentId) {
+  var ss = getSpreadsheet();
+  var portfolio = {
+    academicBackground: [],
+    professionalBackground: [],
+    milestones: [],
+    courseworkCompleted: [],
+    courseworkKeyLearnings: [],
+    courseworkWorkshops: [],
+    dissertationInfo: {
+      title: '', background: '', problem: '', objectives: '', hypotheses: '', conceptualFramework: '', methodology: '', researchTopic: ''
+    },
+    dissertationProgress: [],
+    advisorMeetings: [],
+    ethicsGovernance: {
+      dateApplied: '', dateApproved: '', approvalNumber: '', amendments: '', confidentiality: ''
+    },
+    researchExperience: [],
+    researchReflection: '',
+    conferencePresentations: [],
+    publications: [],
+    manuscripts: [],
+    grants: [],
+    awards: [],
+    studyAbroad: [],
+    specialLectures: [],
+    academicServices: [],
+    englishProficiency: {},
+    englishActivities: [],
+    englishReflection: '',
+    programCourses: [],
+    learningPlans: [],
+    competencies: [],
+    annualReview: { achievements: '', improvements: '', actionPlans: [] },
+    futureCareer: { shortTerm: '', longTerm: '', preparation: '' },
+    advisorComments: '',
+    endorsements: [],
+    supportingFiles: []
+  };
+
+  function formatDate(val) {
+    if (!val) return '';
+    if (val instanceof Date) {
+      var y = val.getFullYear();
+      var m = val.getMonth() + 1;
+      var strM = m < 10 ? '0' + m : '' + m;
+      var d = ("0" + val.getDate()).slice(-2);
+      return y + "-" + strM + "-" + d;
+    }
+    return String(val).trim();
+  }
+
+  function findRowsByStudentID(sheet, sId) {
+    var data = getSheetDataAsJson(sheet);
+    var matched = [];
+    var targetIdStr = String(sId || '').split('.')[0].trim().toLowerCase();
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var rowStudentId = row.StudentID || row['Student ID'] || row['Student_ID'] || row.studentId || '';
+      var rowIdStr = String(rowStudentId || '').split('.')[0].trim().toLowerCase();
+      if (rowIdStr && targetIdStr && rowIdStr === targetIdStr) {
+        matched.push(row);
+      }
+    }
+    return matched;
+  }
+
+  try {
+    // P6_ResearchExperience
+    var s6 = ss.getSheetByName("P6_ResearchExperience");
+    if (s6) {
+      var rows = findRowsByStudentID(s6, studentId);
+      if (rows.length > 0) {
+        portfolio.researchExperience = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var recType = String(r.RecordType || '').trim().toUpperCase();
+          if (recType === "ETHICS" || recType.indexOf("ETHIC") !== -1) {
+            portfolio.ethicsGovernance = {
+              dateApplied: formatDate(r.EthicsDateApplied),
+              dateApproved: formatDate(r.EthicsDateApproved),
+              approvalNumber: r.EthicsApprovalNumber || "",
+              amendments: r.EthicsAmendments || "",
+              confidentiality: r.EthicsConfidentiality || ""
+            };
+            if (r.ResearchReflection !== undefined) {
+              portfolio.researchReflection = r.ResearchReflection;
+            }
+          } else {
+            var supervisorVal = r.ExperienceSupervisor || r.Supervisor || r.ExperienceAdvisor || r.Advisor || r.AdvisorName || "";
+            var isEnd = String(r.ExperienceEndorsed || '').trim().toUpperCase() === "TRUE" || String(r.ExperienceEndorsed || '').trim() === "1" || Boolean(r.ExperienceEndorsedBy);
+            portfolio.researchExperience.push({
+              date: formatDate(r.ExperienceDate || r.Date),
+              activity: r.ExperienceActivity || r.Activity || r.ExperienceDescription || "",
+              description: r.ExperienceDescription || r.Description || r.ExperienceActivity || "",
+              hours: Number(r.ExperienceHours || r.Hours || 0),
+              supervisor: supervisorVal,
+              advisorName: supervisorVal,
+              evidence: r.ExperienceEvidence || r.Evidence || "",
+              isEndorsed: isEnd,
+              endorsedBy: r.ExperienceEndorsedBy || "",
+              endorsementDate: r.ExperienceEndorsementDate || ""
+            });
+          }
+        }
+      }
+    }
+  } catch(e) {}
+
+  return portfolio;
 }

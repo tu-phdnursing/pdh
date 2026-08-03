@@ -13,9 +13,13 @@
 
 function getSpreadsheet() {
   try {
-    return SpreadsheetApp.openById("1Sa9C7gbImdq5B-g131S6IdM7ITW4cPNvpXrf_eOkcGA");
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) return ss;
+  } catch (e) {}
+  try {
+    return SpreadsheetApp.openById("1eAnp9C-qecp4RMM_L5mQyHDRQ3GtLCzXFqNm9-RHfqc");
   } catch (err) {
-    return SpreadsheetApp.getActiveSpreadsheet();
+    return null;
   }
 }
 
