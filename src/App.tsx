@@ -217,8 +217,8 @@ export default function App() {
       setLoginError(missingText);
       Swal.fire({
         icon: 'warning',
-        title: 'ข้อมูลไม่ครบถ้วน',
-        text: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (' + (isStudent ? 'ชื่อ-นามสกุล, อีเมล, รหัสนักศึกษา, รหัสผ่าน' : 'ชื่อ-นามสกุล, อีเมล, รหัสผ่าน') + ')',
+        title: 'Incomplete Registration Information',
+        text: 'Please fill in all required fields (' + (isStudent ? 'Full Name, Email, Student ID, and Password' : 'Full Name, Email, and Password') + ').',
         confirmButtonColor: '#B31B1B'
       });
       return;
@@ -233,8 +233,8 @@ export default function App() {
       setLoginError('An account with this email or Student ID already exists.');
       Swal.fire({
         icon: 'warning',
-        title: 'ไม่สามารถลงทะเบียนได้',
-        text: 'พบข้อมูลอีเมลหรือรหัสนักศึกษานี้ในระบบเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยอีเมลเดิม',
+        title: 'Registration Duplicate',
+        text: 'An account associated with this Email address or Student ID already exists in the system. Please log in with your credentials.',
         confirmButtonColor: '#B31B1B'
       });
       return;
@@ -250,9 +250,7 @@ export default function App() {
       Advisor: isStudent ? (regAdvisor || undefined) : undefined,
       CoAdvisor: isStudent ? (regCoAdvisor || undefined) : undefined,
       ThesisTitle: isStudent ? (regThesisTitle.trim() || undefined) : undefined,
-      PhotoURL: isStudent 
-        ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80'
-        : 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=300&q=80',
+      PhotoURL: '',
       Password: regPassword.trim(),
       Status: 'ACTIVE'
     };
@@ -261,8 +259,8 @@ export default function App() {
 
     // SweetAlert Loading Popup to prevent double submissions
     Swal.fire({
-      title: 'กำลังบันทึกข้อมูล...',
-      text: 'ระบบกำลังบันทึกข้อมูลการลงทะเบียนไปยัง Google Sheets กรุณารอสักครู่',
+      title: 'Saving Registration Record...',
+      text: 'Transmitting account details to the database. Please wait.',
       allowOutsideClick: false,
       allowEscapeKey: false,
       didOpen: () => {
@@ -282,8 +280,8 @@ export default function App() {
 
       Swal.fire({
         icon: 'success',
-        title: 'ลงทะเบียนสำเร็จ!',
-        text: `บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว ยินดีต้อนรับคุณ ${newUser.FullName}`,
+        title: 'Registration Complete!',
+        text: `Your account record has been successfully registered. Welcome, ${newUser.FullName}.`,
         timer: 2500,
         showConfirmButton: false
       });
@@ -292,8 +290,8 @@ export default function App() {
       setLoginError('Registration failed. Please try again.');
       Swal.fire({
         icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถบันทึกข้อมูลไปยัง Google Sheets ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+        title: 'System Error',
+        text: 'Unable to save registration details to the database at this time. Please try again.',
         confirmButtonColor: '#B31B1B'
       });
     } finally {
@@ -1091,7 +1089,7 @@ export default function App() {
             {/* Logged in User Card */}
             <div className="flex items-center gap-2.5 pl-3 border-l border-gray-100">
               <img
-                src={resolvePhotoUrl(currentUser.PhotoURL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80')}
+                src={resolvePhotoUrl(currentUser.PhotoURL)}
                 alt={currentUser.FullName}
                 className="w-8 h-8 rounded-full object-cover ring-2 ring-red-50"
               />
