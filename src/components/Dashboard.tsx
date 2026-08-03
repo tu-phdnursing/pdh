@@ -241,10 +241,13 @@ export default function Dashboard({
         {isSuperAdvisor && mySupervisedStudents.length === 0 && (
           <div className="bg-amber-50/90 border border-amber-200 p-4.5 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-xs">
             <Info size={20} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-amber-950 text-sm">Super Advisor Executive Oversight Governance</p>
+            <div className="space-y-2">
+              <p className="font-bold text-amber-950 text-sm">Super Advisor Executive View</p>
               <p className="text-amber-800 leading-relaxed">
-                You are currently logged in with the <strong className="font-semibold text-amber-950">SUPER_ADVISOR</strong> role (e.g., Dean or Program Executive Committee Member). Because you are not currently designated as the primary advisor or co-advisor for specific doctoral candidates, formal endorsement and activity approvals remain under the primary jurisdiction of each candidate's assigned supervisory committee. However, executive oversight provides you with full administrative access to review academic portfolios, dissertation milestones, and research progress for all enrolled doctoral students ({allStudents.filter(s => s.Role === 'STUDENT').length} candidates) via the <strong className="font-semibold text-amber-950">Advisor Portal</strong>.
+                You are currently accessing the system in the role of SUPER_ADVISOR (e.g., Dean or Programme Administrator). However, you have not yet been assigned as a personal academic advisor or programme advisor to any individual student. The responsibility for reviewing, signing, and approving student activities rests with each student’s designated academic advisor.
+              </p>
+              <p className="text-amber-800 leading-relaxed">
+                Nevertheless, you may view and monitor the portfolio records of all students enrolled in the programme at any time via the Advisor Portal menu.
               </p>
             </div>
           </div>

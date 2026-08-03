@@ -1,0 +1,6 @@
+{
+  "name": "Thammasat University Nursing PhD Portfolio",
+  "description": "Doctoral Portfolio Management System - Faculty of Nursing, Thammasat University",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
