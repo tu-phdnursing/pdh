@@ -8,10 +8,10 @@ import { StudentPortfolioData, User, ConfigOption, Certificate } from '../types'
 import { motion } from 'motion/react';
 import FileUploader from './FileUploader';
 import DatePickerField from './DatePickerField';
-import { resolveFileUrl, formatDisplayDate } from '../lib/googleSheets';
+import { resolveFileUrl, formatDisplayDate, isMatchingAdvisorName } from '../lib/googleSheets';
 import {
   BookOpen, Award, CheckCircle, CheckCircle2, Clock, Save, Plus, Trash2, Calendar, X,
-  ChevronRight, Compass, HelpCircle, Star, Heart, FileText, Check, AlertCircle, Sparkles, Info, Paperclip
+  ChevronRight, Compass, HelpCircle, Star, Heart, FileText, Check, AlertCircle, Sparkles, Info, Paperclip, Lock
 } from 'lucide-react';
 
 interface EditPortfolioProps {
@@ -104,59 +104,47 @@ export default function EditPortfolio({
 
   const handleConfirmEndorsement = async () => {
     if (endorsingIndex === null) return;
-    if (!selectedEndorseAdvisor.trim()) {
-      setEndorseError('กรุณาเลือกชื่ออาจารย์ที่ปรึกษาผู้รับรอง (Please select advisor)');
+
+    const item = formData.researchExperience?.[endorsingIndex];
+    const targetAdvisorName = item?.advisorName || item?.supervisor || currentUser.Advisor || currentUser.CoAdvisor || '';
+
+    if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor)) {
+      setEndorseError(`เฉพาะอาจารย์ที่ปรึกษาที่ได้รับมอบหมาย (${targetAdvisorName || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (Only the designated advisor is authorized to confirm endorsement)`);
       return;
     }
+
     if (!endorsePassword.trim()) {
       setEndorseError('กรุณาใส่รหัสผ่านของอาจารย์ที่ปรึกษา (Please enter advisor password)');
       return;
     }
 
-    const advisorUser = (allUsers || []).find(u => 
-      u.FullName && u.FullName.trim().toLowerCase() === selectedEndorseAdvisor.trim().toLowerCase()
-    );
-
+    const curPass = String(currentUser.Password || '1234').trim().toLowerCase();
     let isPasswordCorrect = false;
 
-    if (advisorUser) {
-      const matchPass = String(advisorUser.Password || '1234').trim().toLowerCase();
-      if (matchPass === endorsePassword.trim().toLowerCase()) {
-        isPasswordCorrect = true;
-      }
-    } else {
-      if (currentUser && ['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR', 'ADMIN'].includes(currentUser.Role)) {
-        const curPass = String(currentUser.Password || '1234').trim().toLowerCase();
-        if (curPass === endorsePassword.trim().toLowerCase()) {
-          isPasswordCorrect = true;
-        }
-      }
-      if (endorsePassword.trim() === '1234') {
-        isPasswordCorrect = true;
-      }
+    if (curPass === endorsePassword.trim().toLowerCase() || endorsePassword.trim() === '1234') {
+      isPasswordCorrect = true;
     }
 
     if (isPasswordCorrect) {
       const updatedList = [...formData.researchExperience];
       updatedList[endorsingIndex] = {
         ...updatedList[endorsingIndex],
-        advisorName: selectedEndorseAdvisor,
+        advisorName: currentUser.FullName,
         isEndorsed: true,
-        endorsedBy: selectedEndorseAdvisor,
+        endorsedBy: currentUser.FullName,
         endorsementDate: endorseDate || new Date().toISOString().split('T')[0]
       };
       
       const newFormData = { ...formData, researchExperience: updatedList };
       setFormData(newFormData);
       await onSavePortfolio(newFormData);
-
       setEndorseSuccess(true);
       setEndorseError('');
       setTimeout(() => {
         setEndorsingIndex(null);
         setEndorseSuccess(false);
         setEndorsePassword('');
-      }, 1200);
+      }, 1000);
     } else {
       setEndorseError('รหัสผ่านอาจารย์ที่ปรึกษาไม่ถูกต้อง กรุณาตรวจสอบและลองอีกครั้ง (Incorrect password)');
     }
@@ -2138,8 +2126,12 @@ export default function EditPortfolio({
             </div>
 
               <div className="space-y-4">
-                {formData.researchExperience.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
+                {formData.researchExperience.map((item, idx) => {
+                  const targetAdvisorName = item.advisorName || item.supervisor || currentUser.Advisor || currentUser.CoAdvisor || '';
+                  const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor);
+
+                  return (
+                    <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
                     {!isReadOnly && (
                       <button
                         onClick={() => {
@@ -2294,66 +2286,76 @@ export default function EditPortfolio({
                           <div className="flex items-center gap-2">
                             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                             <span>
-                              Certified by <strong>{item.endorsedBy || item.advisorName || item.supervisor}</strong> on {item.endorsementDate || '-'}
+                              Certified by <strong>{item.endorsedBy || targetAdvisorName || currentUser.FullName}</strong> on {item.endorsementDate || '-'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEndorsingIndex(idx);
-                                setSelectedEndorseAdvisor(item.advisorName || item.supervisor || item.endorsedBy || advisorOptions[0] || '');
-                                setEndorsePassword('');
-                                setEndorseError('');
-                                setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
-                              }}
-                              className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
-                            >
-                              Re-certify
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const updated = [...formData.researchExperience];
-                                updated[idx].isEndorsed = false;
-                                updated[idx].endorsedBy = undefined;
-                                updated[idx].endorsementDate = undefined;
-                                const newFormData = { ...formData, researchExperience: updated };
-                                setFormData(newFormData);
-                                await onSavePortfolio(newFormData);
-                              }}
-                              className="text-[11px] text-red-600 underline hover:text-red-800 cursor-pointer"
-                            >
-                              Cancel Endorsement
-                            </button>
-                          </div>
+                          {isAuthorizedAdvisor && (
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEndorsingIndex(idx);
+                                  setSelectedEndorseAdvisor(currentUser.FullName);
+                                  setEndorsePassword('');
+                                  setEndorseError('');
+                                  setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
+                                }}
+                                className="text-[11px] text-emerald-700 underline hover:text-emerald-900 cursor-pointer font-bold"
+                              >
+                                Re-certify
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const updated = [...formData.researchExperience];
+                                  updated[idx].isEndorsed = false;
+                                  updated[idx].endorsedBy = undefined;
+                                  updated[idx].endorsementDate = undefined;
+                                  const newFormData = { ...formData, researchExperience: updated };
+                                  setFormData(newFormData);
+                                  await onSavePortfolio(newFormData);
+                                }}
+                                className="text-[11px] text-red-600 underline hover:text-red-800 cursor-pointer font-bold"
+                              >
+                                Cancel Endorsement
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50/90 p-2.5 rounded-lg border border-amber-200 text-xs">
                           <div className="text-amber-800 font-medium flex items-center gap-1.5">
                             <AlertCircle size={14} className="text-amber-600 shrink-0" />
                             <span>Pending Advisor Certification</span>
-                            {(item.advisorName || item.supervisor) && <span className="font-semibold text-gray-700">[{item.advisorName || item.supervisor}]</span>}
+                            {targetAdvisorName && <span className="font-semibold text-gray-700">[{targetAdvisorName}]</span>}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEndorsingIndex(idx);
-                              setSelectedEndorseAdvisor(item.advisorName || item.supervisor || currentUser.Advisor || advisorOptions[0] || '');
-                              setEndorsePassword('');
-                              setEndorseError('');
-                              setEndorseDate(new Date().toISOString().split('T')[0]);
-                            }}
-                            className="px-3 py-1.5 bg-tu-red hover:bg-tu-red-hover text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
-                          >
-                            🖊️ Sign / Certify Hours
-                          </button>
+                          {isAuthorizedAdvisor ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEndorsingIndex(idx);
+                                setSelectedEndorseAdvisor(currentUser.FullName);
+                                setEndorsePassword('');
+                                setEndorseError('');
+                                setEndorseDate(new Date().toISOString().split('T')[0]);
+                              }}
+                              className="px-3 py-1.5 bg-tu-red hover:bg-tu-red-hover text-white rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
+                            >
+                              🖊️ Sign / Certify Hours
+                            </button>
+                          ) : (
+                            <div className="text-xs font-medium text-amber-900/80 bg-amber-100/60 px-2.5 py-1 rounded-md border border-amber-200/60 flex items-center gap-1.5">
+                              <Lock size={12} className="text-amber-600 shrink-0" />
+                              <span>Waiting for <strong>{targetAdvisorName || 'designated advisor'}</strong> endorsement</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
 
             {/* Modal for Advisor Endorsement Certification */}
@@ -2396,17 +2398,13 @@ export default function EditPortfolio({
 
                   <div className="space-y-3 text-xs">
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1">1. Select Advisor Name</label>
-                      <select
-                        value={selectedEndorseAdvisor}
-                        onChange={e => setSelectedEndorseAdvisor(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
-                      >
-                        <option value="">-- Select Supervising Advisor --</option>
-                        {advisorOptions.map((adv, i) => (
-                          <option key={i} value={adv}>{adv}</option>
-                        ))}
-                      </select>
+                      <label className="block font-bold text-gray-700 mb-1">1. Supervising Advisor Name</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentUser.FullName}
+                        className="w-full px-3 py-2 bg-gray-100 border border-slate-300 rounded-xl font-semibold text-gray-700 cursor-not-allowed"
+                      />
                     </div>
 
                     <div>
