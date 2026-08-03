@@ -89,6 +89,19 @@ function doGet(e) {
       var portData = loadPortfolioFromSheets(studentId);
       return ContentService.createTextOutput(JSON.stringify(portData))
         .setMimeType(ContentService.MimeType.JSON);
+    } else if (type === 'allPortfolios') {
+      var usersSheet = getOrCreateSheet('Users');
+      var usersData = getSheetDataAsJson(usersSheet);
+      var allP = [];
+      for (var u = 0; u < usersData.length; u++) {
+        var stId = usersData[u].StudentID;
+        if (stId) {
+          var pData = loadPortfolioFromSheets(stId);
+          allP.push({ studentId: stId, portfolio: pData });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify(allP))
+        .setMimeType(ContentService.MimeType.JSON);
     }
     
     return ContentService.createTextOutput(JSON.stringify(data))
