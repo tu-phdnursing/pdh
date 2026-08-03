@@ -242,9 +242,9 @@ export default function Dashboard({
           <div className="bg-amber-50/90 border border-amber-200 p-4.5 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-xs">
             <Info size={20} className="text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-bold text-amber-950 text-sm">Super Advisor Executive View (มุมมองผู้บริหารหลักสูตร)</p>
+              <p className="font-bold text-amber-950 text-sm">Super Advisor Executive Oversight Governance</p>
               <p className="text-amber-800 leading-relaxed">
-                ท่านเข้าใช้งานในบทบาท <strong className="font-semibold text-amber-900">SUPER_ADVISOR</strong> (เช่น คณบดี หรือผู้บริหารหลักสูตร) โดยยังไม่ได้ถูกระบุเป็นอาจารย์ประจำชั้น/อาจารย์ที่ปรึกษาหลักของนักศึกษาคนใดโดยตรง การลงนามและอนุมัติกิจกรรมจะเป็นหน้าที่ของอาจารย์ที่ปรึกษาประจำตัวของนักศึกษา อย่างไรก็ตาม ท่านสามารถเข้าดูและติดตามข้อมูลพอร์ตโฟลิโอของนักศึกษาทุกคนในหลักสูตร ({allStudents.filter(s => s.Role === 'STUDENT').length} คน) ได้ตลอดเวลาผ่านเมนู <strong className="font-semibold text-amber-900">Advisor Portal</strong>
+                You are currently logged in with the <strong className="font-semibold text-amber-950">SUPER_ADVISOR</strong> role (e.g., Dean or Program Executive Committee Member). Because you are not currently designated as the primary advisor or co-advisor for specific doctoral candidates, formal endorsement and activity approvals remain under the primary jurisdiction of each candidate's assigned supervisory committee. However, executive oversight provides you with full administrative access to review academic portfolios, dissertation milestones, and research progress for all enrolled doctoral students ({allStudents.filter(s => s.Role === 'STUDENT').length} candidates) via the <strong className="font-semibold text-amber-950">Advisor Portal</strong>.
               </p>
             </div>
           </div>

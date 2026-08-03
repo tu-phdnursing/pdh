@@ -310,7 +310,7 @@ export default function AdvisoryChat({
               >
                 <div className="relative shrink-0">
                   <img
-                    src={resolvePhotoUrl(contact.PhotoURL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80')}
+                    src={resolvePhotoUrl(contact.PhotoURL)}
                     alt={contact.FullName}
                     className="w-9 h-9 rounded-full object-cover border border-gray-100"
                   />
@@ -353,7 +353,7 @@ export default function AdvisoryChat({
             <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <img
-                  src={resolvePhotoUrl(activeContact.PhotoURL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80')}
+                  src={resolvePhotoUrl(activeContact.PhotoURL)}
                   alt={activeContact.FullName}
                   className="w-10 h-10 rounded-xl object-cover border border-gray-100 shrink-0"
                 />
@@ -459,7 +459,7 @@ export default function AdvisoryChat({
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       <span className="text-gray-500 font-semibold shrink-0">กำลังคุยกับ / Messaging:</span>
                       <img
-                        src={resolvePhotoUrl(activeContact.PhotoURL, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80')}
+                        src={resolvePhotoUrl(activeContact.PhotoURL)}
                         alt={activeContact.FullName}
                         className="w-5 h-5 rounded-full object-cover shrink-0 border border-gray-200"
                       />
