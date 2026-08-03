@@ -106,7 +106,7 @@ export default function EditPortfolio({
     if (endorsingIndex === null) return;
 
     const item = formData.researchExperience?.[endorsingIndex];
-    const targetAdvisorName = item?.advisorName || item?.supervisor || currentUser.Advisor || currentUser.CoAdvisor || '';
+    const targetAdvisorName = item?.advisorName || item?.supervisor || '';
 
     if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor)) {
       setEndorseError(`เฉพาะอาจารย์ที่ปรึกษาที่ได้รับมอบหมาย (${targetAdvisorName || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (Only the designated advisor is authorized to confirm endorsement)`);
@@ -2127,7 +2127,7 @@ export default function EditPortfolio({
 
               <div className="space-y-4">
                 {formData.researchExperience.map((item, idx) => {
-                  const targetAdvisorName = item.advisorName || item.supervisor || currentUser.Advisor || currentUser.CoAdvisor || '';
+                  const targetAdvisorName = item.advisorName || item.supervisor || '';
                   const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor);
 
                   return (

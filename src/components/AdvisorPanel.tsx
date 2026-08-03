@@ -54,7 +54,7 @@ export default function AdvisorPanel({
     if (endorsingResearchIndex === null || !selectedStudentPortfolio || !activeStudent) return;
 
     const targetItem = selectedStudentPortfolio.researchExperience?.[endorsingResearchIndex];
-    const targetAdvisorName = targetItem?.advisorName || targetItem?.supervisor || activeStudent.Advisor || activeStudent.CoAdvisor || '';
+    const targetAdvisorName = targetItem?.advisorName || targetItem?.supervisor || '';
 
     if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor)) {
       setEndorseError(`Only the designated supervising advisor (${targetAdvisorName || 'assigned advisor'}) is authorized to confirm endorsement.`);
@@ -627,7 +627,7 @@ export default function AdvisorPanel({
 
                     <div className="space-y-4">
                       {(selectedStudentPortfolio?.researchExperience || []).map((item, idx) => {
-                        const targetAdvisorName = item.advisorName || item.supervisor || activeStudent.Advisor || activeStudent.CoAdvisor || '';
+                        const targetAdvisorName = item.advisorName || item.supervisor || '';
                         const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor);
 
                         let evidenceFiles: { name: string; url: string }[] = [];
