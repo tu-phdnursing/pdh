@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X, Lock } from 'lucide-react';
+import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X, Lock, RefreshCw } from 'lucide-react';
 import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio, saveStudentPortfolio, isMatchingAdvisorName } from '../lib/googleSheets';
 import StudentInformation from './StudentInformation';
 import StudentProgressDashboard from './StudentProgressDashboard';
@@ -54,10 +54,17 @@ export default function AdvisorPanel({
     if (endorsingResearchIndex === null || !selectedStudentPortfolio || !activeStudent) return;
 
     const targetItem = selectedStudentPortfolio.researchExperience?.[endorsingResearchIndex];
-    const targetAdvisorName = targetItem?.advisorName || targetItem?.supervisor || '';
+    const targetAdvisorName = targetItem?.advisorName || targetItem?.supervisor || (targetItem as any)?.ExperienceSupervisor || (targetItem as any)?.Supervisor || '';
+    const hasSpecificAdvisor = Boolean(targetAdvisorName && targetAdvisorName.trim());
 
-    if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor)) {
-      setEndorseError(`Only the designated supervising advisor (${targetAdvisorName || 'assigned advisor'}) is authorized to confirm endorsement.`);
+    const isAuthorizedAdvisor = hasSpecificAdvisor
+      ? isMatchingAdvisorName(currentUser.FullName, targetAdvisorName)
+      : (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
+         isMatchingAdvisorName(currentUser.FullName, activeStudent?.Advisor) ||
+         isMatchingAdvisorName(currentUser.FullName, activeStudent?.CoAdvisor));
+
+    if (!isAuthorizedAdvisor) {
+      setEndorseError(`เฉพาะอาจารย์ผู้ควบคุมการวิจัยที่เลือกไว้ (${targetAdvisorName || activeStudent?.Advisor || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (Only ${targetAdvisorName || 'the designated advisor'} is authorized to confirm endorsement)`);
       return;
     }
 
@@ -119,6 +126,7 @@ export default function AdvisorPanel({
 
   // Check if current logged-in advisor is the assigned main advisor or co-advisor of the selected student
   const isAssignedAdvisor = activeStudent ? (
+    currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
     isMatchingAdvisorName(currentUser.FullName, activeStudent.Advisor, activeStudent.Advisor, activeStudent.CoAdvisor) ||
     isMatchingAdvisorName(currentUser.FullName, activeStudent.CoAdvisor, activeStudent.Advisor, activeStudent.CoAdvisor)
   ) : false;
@@ -610,7 +618,7 @@ export default function AdvisorPanel({
               {activeTab === 'research' && (
                 <div className="space-y-4">
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs space-y-6">
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
                       <div>
                         <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                           <Microscope className="text-tu-red" size={18} />
@@ -620,15 +628,38 @@ export default function AdvisorPanel({
                           Review, verify, and endorse student logged research activities and accumulated hours with your advisor credentials.
                         </p>
                       </div>
-                      <span className="text-xs font-mono font-bold px-3 py-1 bg-red-50 text-tu-red rounded-lg">
-                        Total {selectedStudentPortfolio?.researchExperience?.length || 0} Records
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!activeStudent?.StudentID) return;
+                            setIsLoadingPortfolio(true);
+                            const port = await getStudentPortfolio(activeStudent.StudentID);
+                            setSelectedStudentPortfolio(port);
+                            setIsLoadingPortfolio(false);
+                          }}
+                          disabled={isLoadingPortfolio}
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                          title="Reload from Google Sheets"
+                        >
+                          <RefreshCw size={13} className={isLoadingPortfolio ? 'animate-spin' : ''} />
+                          Sync Google Sheets
+                        </button>
+                        <span className="text-xs font-mono font-bold px-3 py-1 bg-red-50 text-tu-red rounded-lg">
+                          Total {selectedStudentPortfolio?.researchExperience?.length || 0} Records
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
-                      {(selectedStudentPortfolio?.researchExperience || []).map((item, idx) => {
-                        const targetAdvisorName = item.advisorName || item.supervisor || '';
-                        const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor);
+                      {(selectedStudentPortfolio?.researchExperience || []).filter(Boolean).map((item, idx) => {
+                        const targetAdvisorName = item?.advisorName || item?.supervisor || (item as any)?.ExperienceSupervisor || (item as any)?.Supervisor || '';
+                        const hasSpecificAdvisor = Boolean(targetAdvisorName && targetAdvisorName.trim());
+                        const isAuthorizedAdvisor = hasSpecificAdvisor
+                          ? isMatchingAdvisorName(currentUser.FullName, targetAdvisorName)
+                          : (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
+                             isMatchingAdvisorName(currentUser.FullName, activeStudent?.Advisor) ||
+                             isMatchingAdvisorName(currentUser.FullName, activeStudent?.CoAdvisor));
 
                         let evidenceFiles: { name: string; url: string }[] = [];
                         if (Array.isArray(item.evidence)) {
@@ -728,7 +759,7 @@ export default function AdvisorPanel({
                                       <button
                                         type="button"
                                         onClick={async () => {
-                                          if (!selectedStudentPortfolio) return;
+                                          if (!selectedStudentPortfolio || !activeStudent) return;
                                           const updatedExp = [...(selectedStudentPortfolio.researchExperience || [])];
                                           updatedExp[idx] = {
                                             ...updatedExp[idx],
@@ -757,28 +788,25 @@ export default function AdvisorPanel({
                                     )}
                                   </div>
 
-                                  {isAuthorizedAdvisor ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEndorsingResearchIndex(idx);
-                                        setSelectedEndorseAdvisor(currentUser.FullName);
-                                        setEndorsePassword('');
-                                        setEndorseError('');
-                                        setEndorseSuccess('');
-                                        setEndorseDate(new Date().toISOString().split('T')[0]);
-                                      }}
-                                      className="px-4 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
-                                    >
-                                      <Key size={13} />
-                                      🖊️ Confirm Endorsement (Enter Password)
-                                    </button>
-                                  ) : (
-                                    <div className="text-xs font-medium text-amber-900/80 bg-amber-100/70 px-3 py-1.5 rounded-lg border border-amber-200/80 flex items-center gap-1.5 shrink-0">
-                                      <Lock size={13} className="text-amber-600 shrink-0" />
-                                      <span>Waiting for <strong>{targetAdvisorName || 'designated advisor'}</strong> endorsement</span>
-                                    </div>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEndorsingResearchIndex(idx);
+                                      setSelectedEndorseAdvisor(currentUser.FullName);
+                                      setEndorsePassword('');
+                                      setEndorseError(isAuthorizedAdvisor ? '' : `คุณไม่ใช่ผู้ควบคุมการวิจัยที่เลือกไว้ (${targetAdvisorName}) - เฉพาะอาจารย์ที่ตรงกับชื่อเท่านั้นที่มีสิทธิ์กดยืนยัน`);
+                                      setEndorseSuccess('');
+                                      setEndorseDate(new Date().toISOString().split('T')[0]);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs ${
+                                      isAuthorizedAdvisor
+                                        ? 'bg-tu-red hover:bg-tu-red-hover text-white'
+                                        : 'bg-amber-600 hover:bg-amber-700 text-white'
+                                    }`}
+                                  >
+                                    <Key size={13} />
+                                    🖊️ Confirm Endorsement (Enter Password)
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -842,125 +870,154 @@ export default function AdvisorPanel({
       </div>
 
       {/* Advisor Research Endorsement Modal */}
-      {endorsingResearchIndex !== null && selectedStudentPortfolio && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4 relative">
-            <button
-              onClick={() => { setEndorsingResearchIndex(null); setEndorseError(''); setEndorseSuccess(''); }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+      {endorsingResearchIndex !== null && selectedStudentPortfolio && (() => {
+        const modalItem = selectedStudentPortfolio.researchExperience?.[endorsingResearchIndex];
+        const modalAdvisorName = modalItem?.advisorName || modalItem?.supervisor || (modalItem as any)?.ExperienceSupervisor || (modalItem as any)?.Supervisor || '';
+        const modalHasSpecificAdvisor = Boolean(modalAdvisorName && modalAdvisorName.trim());
+        const isModalAuthorized = modalHasSpecificAdvisor
+          ? isMatchingAdvisorName(currentUser.FullName, modalAdvisorName)
+          : (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
+             isMatchingAdvisorName(currentUser.FullName, activeStudent?.Advisor) ||
+             isMatchingAdvisorName(currentUser.FullName, activeStudent?.CoAdvisor));
 
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-tu-red shrink-0">
-                <CheckCircle2 size={22} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Advisor Endorsement Certification</h3>
-                <p className="text-[11px] text-gray-500">Research Hours Requirement (180h Minimum)</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 bg-[#EEF2F6] p-3 rounded-xl border border-slate-300 text-xs">
-              <div>
-                <span className="text-gray-500">Student: </span>
-                <span className="font-bold text-gray-900">{activeStudent?.FullName}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Activity: </span>
-                <span className="font-bold text-gray-800">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.description || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>
-                  <span className="text-gray-500">Hours: </span>
-                  <span className="font-bold text-tu-red">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.Hours || selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.hours || 0} Hours</span>
-                </span>
-                <span>
-                  <span className="text-gray-500">Date: </span>
-                  <span className="font-semibold text-gray-700">{selectedStudentPortfolio.researchExperience[endorsingResearchIndex]?.date || '-'}</span>
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">1. Supervising Advisor Name</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={currentUser.FullName}
-                  className="w-full px-3 py-2 bg-gray-100 border border-slate-300 rounded-xl font-semibold text-gray-700 cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">2. Certification Date</label>
-                <input
-                  type="date"
-                  value={endorseDate}
-                  onChange={e => setEndorseDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">3. Advisor Password Confirmation</label>
-                <input
-                  type="password"
-                  value={endorsePassword}
-                  onChange={e => setEndorsePassword(e.target.value)}
-                  placeholder="Enter advisor password to confirm signature"
-                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
-                />
-                <span className="text-[10px] text-gray-500 mt-1 block">* Enter password to authenticate your official signature</span>
-              </div>
-            </div>
-
-            {endorseError && (
-              <div className="p-2.5 bg-red-50 border border-red-200 text-tu-red rounded-xl text-xs font-semibold flex items-center gap-2">
-                <AlertTriangle size={14} className="shrink-0" />
-                {endorseError}
-              </div>
-            )}
-
-            {endorseSuccess && (
-              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 size={14} className="shrink-0" />
-                {endorseSuccess}
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4 relative">
               <button
-                type="button"
                 onClick={() => { setEndorsingResearchIndex(null); setEndorseError(''); setEndorseSuccess(''); }}
-                className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition text-xs cursor-pointer"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
-                Cancel
+                <X size={18} />
               </button>
-              <button
-                type="button"
-                disabled={isSavingEndorsement}
-                onClick={handleConfirmResearchEndorsement}
-                className="flex-1 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                {isSavingEndorsement ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Signing...
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={14} />
-                    Confirm Certification
-                  </>
-                )}
-              </button>
+
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-tu-red shrink-0">
+                  <CheckCircle2 size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Advisor Endorsement Certification</h3>
+                  <p className="text-[11px] text-gray-500">Research Hours Requirement (180h Minimum)</p>
+                </div>
+              </div>
+
+              {!isModalAuthorized && (
+                <div className="p-3 bg-red-50 border border-red-200 text-tu-red rounded-xl text-xs font-semibold flex items-start gap-2">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">ไม่สามารถกดยืนยันการรับรองแทนกันได้</strong>
+                    <p className="mt-0.5 text-[11px] font-normal text-red-700 leading-normal">
+                      เฉพาะอาจารย์ผู้ควบคุมการวิจัยที่นักศึกษาเลือกไว้ <strong>[{modalAdvisorName || activeStudent?.Advisor || 'Designated Advisor'}]</strong> เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (You logged in as {currentUser.FullName})
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 bg-[#EEF2F6] p-3 rounded-xl border border-slate-300 text-xs">
+                <div>
+                  <span className="text-gray-500">Student: </span>
+                  <span className="font-bold text-gray-900">{activeStudent?.FullName}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Activity: </span>
+                  <span className="font-bold text-gray-800">{modalItem?.description || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>
+                    <span className="text-gray-500">Hours: </span>
+                    <span className="font-bold text-tu-red">{modalItem?.Hours || modalItem?.hours || 0} Hours</span>
+                  </span>
+                  <span>
+                    <span className="text-gray-500">Date: </span>
+                    <span className="font-semibold text-gray-700">{modalItem?.date || '-'}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">1. Supervising Advisor Name</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={currentUser.FullName}
+                    className="w-full px-3 py-2 bg-gray-100 border border-slate-300 rounded-xl font-semibold text-gray-700 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">2. Certification Date</label>
+                  <input
+                    type="date"
+                    value={endorseDate}
+                    onChange={e => setEndorseDate(e.target.value)}
+                    disabled={!isModalAuthorized}
+                    className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">3. Advisor Password Confirmation</label>
+                  <input
+                    type="password"
+                    value={endorsePassword}
+                    onChange={e => setEndorsePassword(e.target.value)}
+                    disabled={!isModalAuthorized}
+                    placeholder={isModalAuthorized ? "Enter advisor password to confirm signature" : "Disabled - Name does not match supervising advisor"}
+                    className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium disabled:opacity-50"
+                  />
+                  <span className="text-[10px] text-gray-500 mt-1 block">* Enter password to authenticate your official signature</span>
+                </div>
+              </div>
+
+              {endorseError && (
+                <div className="p-2.5 bg-red-50 border border-red-200 text-tu-red rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" />
+                  {endorseError}
+                </div>
+              )}
+
+              {endorseSuccess && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 size={14} className="shrink-0" />
+                  {endorseSuccess}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setEndorsingResearchIndex(null); setEndorseError(''); setEndorseSuccess(''); }}
+                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingEndorsement || !isModalAuthorized}
+                  onClick={handleConfirmResearchEndorsement}
+                  className={`flex-1 py-2 rounded-xl font-bold transition text-xs flex items-center justify-center gap-1.5 shadow-xs ${
+                    !isModalAuthorized
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-tu-red hover:bg-tu-red-hover text-white cursor-pointer'
+                  }`}
+                >
+                  {isSavingEndorsement ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Signing...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={14} />
+                      Confirm Certification
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import FileUploader from './FileUploader';
 import DatePickerField from './DatePickerField';
 import { resolveFileUrl, formatDisplayDate, isMatchingAdvisorName } from '../lib/googleSheets';
 import {
-  BookOpen, Award, CheckCircle, CheckCircle2, Clock, Save, Plus, Trash2, Calendar, X,
+  BookOpen, Award, CheckCircle2, Clock, Save, Plus, Trash2, Calendar, X,
   ChevronRight, Compass, HelpCircle, Star, Heart, FileText, Check, AlertCircle, Sparkles, Info, Paperclip, Lock
 } from 'lucide-react';
 
@@ -87,29 +87,31 @@ export default function EditPortfolio({
   }, [initialSection]);
 
   const advisorOptions = React.useMemo(() => {
-    const fromConfig = configOptions
-      .filter(c => c.OptionType.trim() === 'ADVISOR' || c.OptionType.trim() === 'CO_ADVISOR')
-      .map(c => c.OptionValue.trim());
-
+    const validRoles = ['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR'];
+    
+    // Only pull from Users table where Role is SUPER_ADVISOR, ADVISOR, or CO_ADVISOR
     const fromUsers = (allUsers || [])
-      .filter(u => ['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR', 'ADMIN'].includes(u.Role) || u.Advisor)
+      .filter(u => u && u.FullName && validRoles.includes(String(u.Role || '').trim().toUpperCase()))
       .map(u => u.FullName.trim());
 
-    const combined = Array.from(new Set([...fromConfig, ...fromUsers])).filter(Boolean);
-    if (combined.length === 0) {
-      return ['Assoc. Prof. Dr. Nonglak', 'Prof. Dr. Orapan', 'Assoc. Prof. Dr. Sarah'];
-    }
-    return combined;
-  }, [configOptions, allUsers]);
+    return Array.from(new Set(fromUsers)).filter(Boolean);
+  }, [allUsers]);
 
   const handleConfirmEndorsement = async () => {
     if (endorsingIndex === null) return;
 
     const item = formData.researchExperience?.[endorsingIndex];
-    const targetAdvisorName = item?.advisorName || item?.supervisor || '';
+    const targetAdvisorName = item?.advisorName || item?.supervisor || (item as any)?.ExperienceSupervisor || (item as any)?.Supervisor || '';
+    const hasSpecificAdvisor = Boolean(targetAdvisorName && targetAdvisorName.trim());
 
-    if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor)) {
-      setEndorseError(`เฉพาะอาจารย์ที่ปรึกษาที่ได้รับมอบหมาย (${targetAdvisorName || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (Only the designated advisor is authorized to confirm endorsement)`);
+    const isAuthorizedAdvisor = hasSpecificAdvisor
+      ? isMatchingAdvisorName(currentUser.FullName, targetAdvisorName)
+      : (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
+         isMatchingAdvisorName(currentUser.FullName, currentUser?.Advisor) ||
+         isMatchingAdvisorName(currentUser.FullName, currentUser?.CoAdvisor));
+
+    if (!isAuthorizedAdvisor) {
+      setEndorseError(`เฉพาะอาจารย์ผู้ควบคุมการวิจัยที่เลือกไว้ (${targetAdvisorName || currentUser.Advisor || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์กดยืนยันการรับรอง (Only ${targetAdvisorName || 'the designated advisor'} is authorized to confirm endorsement)`);
       return;
     }
 
@@ -2128,7 +2130,8 @@ export default function EditPortfolio({
               <div className="space-y-4">
                 {formData.researchExperience.map((item, idx) => {
                   const targetAdvisorName = item.advisorName || item.supervisor || '';
-                  const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor);
+                  const isAuthorizedAdvisor = currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
+                    isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor);
 
                   return (
                     <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
@@ -2236,6 +2239,13 @@ export default function EditPortfolio({
                             {advisorOptions.map((adv, i) => (
                               <option key={i} value={adv}>{adv}</option>
                             ))}
+                            {(() => {
+                              const currentVal = item.advisorName || item.supervisor;
+                              if (currentVal && !advisorOptions.includes(currentVal)) {
+                                return <option value={currentVal}>{currentVal}</option>;
+                              }
+                              return null;
+                            })()}
                           </select>
                         )}
                         {item.isEndorsed && (
