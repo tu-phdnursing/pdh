@@ -426,6 +426,20 @@ export function logActivity(userId: string, action: string, details: string) {
   }
 }
 
+// Helper for fast fetch with timeout
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs: number = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return response;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
 // Data Getters with automatic Google Sheets proxy syncing if API configured
 export async function getUsers(): Promise<User[]> {
   initializeDatabase();
@@ -433,7 +447,7 @@ export async function getUsers(): Promise<User[]> {
   let rawUsers: any[] = [];
   if (scriptUrl) {
     try {
-      const res = await fetch(`${scriptUrl}?t=${new Date().getTime()}&type=users`);
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=users`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -556,7 +570,7 @@ export async function getCertificates(): Promise<Certificate[]> {
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
     try {
-      const res = await fetch(`${scriptUrl}?t=${new Date().getTime()}&type=certificates`);
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=certificates`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -622,7 +636,7 @@ export async function getActivities(): Promise<Activity[]> {
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
     try {
-      const res = await fetch(`${scriptUrl}?t=${new Date().getTime()}&type=activities`);
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=activities`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -688,7 +702,7 @@ export async function getConfigOptions(): Promise<ConfigOption[]> {
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
     try {
-      const res = await fetch(`${scriptUrl}?t=${new Date().getTime()}&type=configOptions`);
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=configOptions`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -789,7 +803,7 @@ export async function getStudentPortfolio(studentId: string): Promise<StudentPor
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
     try {
-      const res = await fetch(`${scriptUrl}?t=${new Date().getTime()}&type=portfolio&studentId=${studentId}`);
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=portfolio&studentId=${studentId}`);
       if (res.ok) {
         const data = await res.json();
         if (data && !data.error) {
