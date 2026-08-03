@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X } from 'lucide-react';
-import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio, saveStudentPortfolio } from '../lib/googleSheets';
+import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X, Lock } from 'lucide-react';
+import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio, saveStudentPortfolio, isMatchingAdvisorName } from '../lib/googleSheets';
 import StudentInformation from './StudentInformation';
 import StudentProgressDashboard from './StudentProgressDashboard';
 import EditPortfolio from './EditPortfolio';
@@ -52,6 +52,14 @@ export default function AdvisorPanel({
 
   const handleConfirmResearchEndorsement = async () => {
     if (endorsingResearchIndex === null || !selectedStudentPortfolio || !activeStudent) return;
+
+    const targetItem = selectedStudentPortfolio.researchExperience?.[endorsingResearchIndex];
+    const targetAdvisorName = targetItem?.advisorName || targetItem?.supervisor || activeStudent.Advisor || activeStudent.CoAdvisor || '';
+
+    if (!isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor)) {
+      setEndorseError(`Only the designated supervising advisor (${targetAdvisorName || 'assigned advisor'}) is authorized to confirm endorsement.`);
+      return;
+    }
 
     if (!endorsePassword.trim()) {
       setEndorseError('Please enter your advisor account password.');
@@ -102,19 +110,21 @@ export default function AdvisorPanel({
     if (s.Role !== 'STUDENT') return false;
     if (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN') return true;
     
-    const isMainAdvisor = s.Advisor && typeof s.Advisor === 'string' && 
-      s.Advisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
-      
-    const isCoAdvisor = s.CoAdvisor && typeof s.CoAdvisor === 'string' && 
-      s.CoAdvisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
-      
-    return isMainAdvisor || isCoAdvisor;
+    return isMatchingAdvisorName(currentUser.FullName, s.Advisor, s.Advisor, s.CoAdvisor) ||
+           isMatchingAdvisorName(currentUser.FullName, s.CoAdvisor, s.Advisor, s.CoAdvisor);
   });
 
   // Default to selecting the first student for convenient overview if none is selected
   const activeStudent = selectedStudent;
 
+  // Check if current logged-in advisor is the assigned main advisor or co-advisor of the selected student
+  const isAssignedAdvisor = activeStudent ? (
+    isMatchingAdvisorName(currentUser.FullName, activeStudent.Advisor, activeStudent.Advisor, activeStudent.CoAdvisor) ||
+    isMatchingAdvisorName(currentUser.FullName, activeStudent.CoAdvisor, activeStudent.Advisor, activeStudent.CoAdvisor)
+  ) : false;
+
   const handleVerifyCert = async (certId: string, status: 'APPROVED' | 'REJECTED') => {
+    if (!isAssignedAdvisor) return;
     setActingId(certId);
     await onVerifyCertificate(certId, status, feedbackText);
     setFeedbackText('');
@@ -122,6 +132,7 @@ export default function AdvisorPanel({
   };
 
   const handleVerifyAct = async (actId: string, status: 'APPROVED' | 'REJECTED') => {
+    if (!isAssignedAdvisor) return;
     setActingId(actId);
     await onVerifyActivity(actId, status, feedbackText);
     setFeedbackText('');
@@ -374,36 +385,43 @@ export default function AdvisorPanel({
                               </div>
 
                               {cert.Status === 'PENDING' ? (
-                                <div className="space-y-3 pt-3 border-t border-gray-50">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-gray-500 block mb-1">Advisor Feedback & Remarks</label>
-                                    <input
-                                      type="text"
-                                      placeholder="e.g., Excellent credentials, approved."
-                                      value={actingId === cert.CertID ? feedbackText : ''}
-                                      onChange={e => {
-                                        setActingId(cert.CertID);
-                                        setFeedbackText(e.target.value);
-                                      }}
-                                      className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs"
-                                    />
-                                  </div>
+                                isAssignedAdvisor ? (
+                                  <div className="space-y-3 pt-3 border-t border-gray-50">
+                                    <div>
+                                      <label className="text-[10px] font-semibold text-gray-500 block mb-1">Advisor Feedback & Remarks</label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g., Excellent credentials, approved."
+                                        value={actingId === cert.CertID ? feedbackText : ''}
+                                        onChange={e => {
+                                          setActingId(cert.CertID);
+                                          setFeedbackText(e.target.value);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                                      />
+                                    </div>
 
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleVerifyCert(cert.CertID, 'APPROVED')}
-                                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition cursor-pointer"
-                                    >
-                                      Approve Certificate
-                                    </button>
-                                    <button
-                                      onClick={() => handleVerifyCert(cert.CertID, 'REJECTED')}
-                                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-lg transition cursor-pointer"
-                                    >
-                                      Request Revision
-                                    </button>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleVerifyCert(cert.CertID, 'APPROVED')}
+                                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition cursor-pointer"
+                                      >
+                                        Approve Certificate
+                                      </button>
+                                      <button
+                                        onClick={() => handleVerifyCert(cert.CertID, 'REJECTED')}
+                                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-lg transition cursor-pointer"
+                                      >
+                                        Request Revision
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  <div className="pt-3 border-t border-gray-50 text-[11px] font-medium text-amber-900/90 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/60 flex items-center gap-1.5">
+                                    <Lock size={13} className="text-amber-600 shrink-0" />
+                                    <span>เฉพาะอาจารย์ที่ปรึกษาที่ได้รับมอบหมาย ({activeStudent.Advisor || activeStudent.CoAdvisor || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์ตรวจสอบ/อนุมัติ (View-Only)</span>
+                                  </div>
+                                )
                               ) : (
                                 <div className="p-2.5 bg-gray-50 rounded-xl text-[11px] text-gray-600 border border-gray-100">
                                   <span className="font-bold text-gray-800">Submitted Feedback: </span>
@@ -530,36 +548,43 @@ export default function AdvisorPanel({
                               </div>
 
                               {act.Status === 'PENDING' ? (
-                                <div className="space-y-3 pt-3 border-t border-gray-50">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-gray-500 block mb-1">Advisor Activity Feedback</label>
-                                    <input
-                                      type="text"
-                                      placeholder="e.g., Great community presentation, approved."
-                                      value={actingId === act.ActivityID ? feedbackText : ''}
-                                      onChange={e => {
-                                        setActingId(act.ActivityID);
-                                        setFeedbackText(e.target.value);
-                                      }}
-                                      className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs"
-                                    />
-                                  </div>
+                                isAssignedAdvisor ? (
+                                  <div className="space-y-3 pt-3 border-t border-gray-50">
+                                    <div>
+                                      <label className="text-[10px] font-semibold text-gray-500 block mb-1">Advisor Activity Feedback</label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g., Great community presentation, approved."
+                                        value={actingId === act.ActivityID ? feedbackText : ''}
+                                        onChange={e => {
+                                          setActingId(act.ActivityID);
+                                          setFeedbackText(e.target.value);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                                      />
+                                    </div>
 
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleVerifyAct(act.ActivityID, 'APPROVED')}
-                                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition cursor-pointer"
-                                    >
-                                      Approve Activity
-                                    </button>
-                                    <button
-                                      onClick={() => handleVerifyAct(act.ActivityID, 'REJECTED')}
-                                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-lg transition cursor-pointer"
-                                    >
-                                      Request Revision
-                                    </button>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleVerifyAct(act.ActivityID, 'APPROVED')}
+                                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition cursor-pointer"
+                                      >
+                                        Approve Activity
+                                      </button>
+                                      <button
+                                        onClick={() => handleVerifyAct(act.ActivityID, 'REJECTED')}
+                                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-lg transition cursor-pointer"
+                                      >
+                                        Request Revision
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  <div className="pt-3 border-t border-gray-50 text-[11px] font-medium text-amber-900/90 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/60 flex items-center gap-1.5">
+                                    <Lock size={13} className="text-amber-600 shrink-0" />
+                                    <span>เฉพาะอาจารย์ที่ปรึกษาที่ได้รับมอบหมาย ({activeStudent.Advisor || activeStudent.CoAdvisor || 'Designated Advisor'}) เท่านั้นที่มีสิทธิ์ตรวจสอบ/อนุมัติ (View-Only)</span>
+                                  </div>
+                                )
                               ) : (
                                 <div className="p-2.5 bg-gray-50 rounded-xl text-[11px] text-gray-600 border border-gray-100">
                                   <span className="font-bold text-gray-800 font-mono">Advisor Recommendation: </span>
@@ -602,6 +627,9 @@ export default function AdvisorPanel({
 
                     <div className="space-y-4">
                       {(selectedStudentPortfolio?.researchExperience || []).map((item, idx) => {
+                        const targetAdvisorName = item.advisorName || item.supervisor || activeStudent.Advisor || activeStudent.CoAdvisor || '';
+                        const isAuthorizedAdvisor = isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, activeStudent.Advisor, activeStudent.CoAdvisor);
+
                         let evidenceFiles: { name: string; url: string }[] = [];
                         if (Array.isArray(item.evidence)) {
                           evidenceFiles = item.evidence.map(f => typeof f === 'string' ? { name: 'Attachment', url: f } : f);
@@ -678,70 +706,79 @@ export default function AdvisorPanel({
                                   <div className="flex items-center gap-2">
                                     <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                                     <span>
-                                      Certified & Signed by <strong>{item.endorsedBy || item.advisorName || currentUser.FullName}</strong> on {item.endorsementDate || '-'}
+                                      Certified & Signed by <strong>{item.endorsedBy || targetAdvisorName || currentUser.FullName}</strong> on {item.endorsementDate || '-'}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEndorsingResearchIndex(idx);
-                                        setSelectedEndorseAdvisor(item.endorsedBy || item.advisorName || currentUser.FullName);
-                                        setEndorsePassword('');
-                                        setEndorseError('');
-                                        setEndorseSuccess('');
-                                        setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
-                                      }}
-                                      className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
-                                    >
-                                      Re-certify
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        if (!selectedStudentPortfolio) return;
-                                        const updatedExp = [...(selectedStudentPortfolio.researchExperience || [])];
-                                        updatedExp[idx] = {
-                                          ...updatedExp[idx],
-                                          isEndorsed: false,
-                                          endorsedBy: undefined,
-                                          endorsementDate: undefined
-                                        };
-                                        const updatedPortfolio = { ...selectedStudentPortfolio, researchExperience: updatedExp };
-                                        setSelectedStudentPortfolio(updatedPortfolio);
-                                        await saveStudentPortfolio(activeStudent.StudentID, updatedPortfolio);
-                                      }}
-                                      className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
-                                    >
-                                      Cancel Endorsement
-                                    </button>
-                                  </div>
+                                  {isAuthorizedAdvisor && (
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEndorsingResearchIndex(idx);
+                                          setSelectedEndorseAdvisor(currentUser.FullName);
+                                          setEndorsePassword('');
+                                          setEndorseError('');
+                                          setEndorseSuccess('');
+                                          setEndorseDate(item.endorsementDate || new Date().toISOString().split('T')[0]);
+                                        }}
+                                        className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
+                                      >
+                                        Re-certify
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          if (!selectedStudentPortfolio) return;
+                                          const updatedExp = [...(selectedStudentPortfolio.researchExperience || [])];
+                                          updatedExp[idx] = {
+                                            ...updatedExp[idx],
+                                            isEndorsed: false,
+                                            endorsedBy: undefined,
+                                            endorsementDate: undefined
+                                          };
+                                          const updatedPortfolio = { ...selectedStudentPortfolio, researchExperience: updatedExp };
+                                          setSelectedStudentPortfolio(updatedPortfolio);
+                                          await saveStudentPortfolio(activeStudent.StudentID, updatedPortfolio);
+                                        }}
+                                        className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                                      >
+                                        Cancel Endorsement
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs">
                                   <div className="text-amber-800 font-medium flex items-center gap-2">
                                     <AlertTriangle size={15} className="text-amber-600 shrink-0" />
                                     <span>Pending Advisor Endorsement</span>
-                                    {(item.advisorName || item.supervisor) && (
-                                      <span className="font-bold text-gray-800">[{item.advisorName || item.supervisor}]</span>
+                                    {targetAdvisorName && (
+                                      <span className="font-bold text-gray-800">[{targetAdvisorName}]</span>
                                     )}
                                   </div>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEndorsingResearchIndex(idx);
-                                      setSelectedEndorseAdvisor(item.advisorName || item.supervisor || currentUser.FullName);
-                                      setEndorsePassword('');
-                                      setEndorseError('');
-                                      setEndorseSuccess('');
-                                      setEndorseDate(new Date().toISOString().split('T')[0]);
-                                    }}
-                                    className="px-4 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
-                                  >
-                                    <Key size={13} />
-                                    🖊️ Confirm Endorsement (Enter Password)
-                                  </button>
+                                  {isAuthorizedAdvisor ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEndorsingResearchIndex(idx);
+                                        setSelectedEndorseAdvisor(currentUser.FullName);
+                                        setEndorsePassword('');
+                                        setEndorseError('');
+                                        setEndorseSuccess('');
+                                        setEndorseDate(new Date().toISOString().split('T')[0]);
+                                      }}
+                                      className="px-4 py-2 bg-tu-red hover:bg-tu-red-hover text-white rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs text-xs"
+                                    >
+                                      <Key size={13} />
+                                      🖊️ Confirm Endorsement (Enter Password)
+                                    </button>
+                                  ) : (
+                                    <div className="text-xs font-medium text-amber-900/80 bg-amber-100/70 px-3 py-1.5 rounded-lg border border-amber-200/80 flex items-center gap-1.5 shrink-0">
+                                      <Lock size={13} className="text-amber-600 shrink-0" />
+                                      <span>Waiting for <strong>{targetAdvisorName || 'designated advisor'}</strong> endorsement</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -851,10 +888,9 @@ export default function AdvisorPanel({
                 <label className="block font-bold text-gray-700 mb-1">1. Supervising Advisor Name</label>
                 <input
                   type="text"
-                  value={selectedEndorseAdvisor}
-                  onChange={e => setSelectedEndorseAdvisor(e.target.value)}
-                  placeholder="Advisor Full Name"
-                  className="w-full px-3 py-2 bg-[#EEF2F6] border border-slate-300 rounded-xl font-medium"
+                  readOnly
+                  value={currentUser.FullName}
+                  className="w-full px-3 py-2 bg-gray-100 border border-slate-300 rounded-xl font-semibold text-gray-700 cursor-not-allowed"
                 />
               </div>
 
