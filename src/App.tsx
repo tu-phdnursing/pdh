@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Swal from 'sweetalert2';
 import {
   Award, BookOpen, Clock, FileText, Settings, Users, LogOut, KeyRound,
   HelpCircle, RefreshCw, Layers, CheckCircle2, AlertCircle, Sparkles, GraduationCap,
@@ -77,6 +78,7 @@ export default function App() {
   const [regCoAdvisor, setRegCoAdvisor] = useState('');
   const [regThesisTitle, setRegThesisTitle] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [isSubmittingReg, setIsSubmittingReg] = useState(false);
 
   // Load Database and Initialize
   const loadDatabase = async (isSilent = false) => {
@@ -207,9 +209,18 @@ export default function App() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingReg) return;
+
     const isStudent = regRole === 'STUDENT';
     if (!regFullName.trim() || !regEmail.trim() || !regPassword.trim() || (isStudent && !regStudentID.trim())) {
-      setLoginError('Please fill in all required fields including password' + (isStudent ? ' and Student ID.' : '.'));
+      const missingText = 'Please fill in all required fields including password' + (isStudent ? ' and Student ID.' : '.');
+      setLoginError(missingText);
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        text: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (' + (isStudent ? 'ชื่อ-นามสกุล, อีเมล, รหัสนักศึกษา, รหัสผ่าน' : 'ชื่อ-นามสกุล, อีเมล, รหัสผ่าน') + ')',
+        confirmButtonColor: '#B31B1B'
+      });
       return;
     }
 
@@ -220,6 +231,12 @@ export default function App() {
     });
     if (match) {
       setLoginError('An account with this email or Student ID already exists.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่สามารถลงทะเบียนได้',
+        text: 'พบข้อมูลอีเมลหรือรหัสนักศึกษานี้ในระบบเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยอีเมลเดิม',
+        confirmButtonColor: '#B31B1B'
+      });
       return;
     }
 
@@ -240,18 +257,47 @@ export default function App() {
       Status: 'ACTIVE'
     };
 
+    setIsSubmittingReg(true);
+
+    // SweetAlert Loading Popup to prevent double submissions
+    Swal.fire({
+      title: 'กำลังบันทึกข้อมูล...',
+      text: 'ระบบกำลังบันทึกข้อมูลการลงทะเบียนไปยัง Google Sheets กรุณารอสักครู่',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       await saveUser(newUser);
-      await loadDatabase();
+      await loadDatabase(true);
       setCurrentUser(newUser);
       logActivity(newUser.UserID, 'REGISTER', `New ${regRole.toLowerCase()} ${newUser.FullName} registered`);
       setLoginError('');
       setIsRegistering(false);
       setActiveTab('dashboard');
       setRegPassword(''); // clear after register
+
+      Swal.fire({
+        icon: 'success',
+        title: 'ลงทะเบียนสำเร็จ!',
+        text: `บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว ยินดีต้อนรับคุณ ${newUser.FullName}`,
+        timer: 2500,
+        showConfirmButton: false
+      });
     } catch (err) {
       console.error(err);
       setLoginError('Registration failed. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถบันทึกข้อมูลไปยัง Google Sheets ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+        confirmButtonColor: '#B31B1B'
+      });
+    } finally {
+      setIsSubmittingReg(false);
     }
   };
 
@@ -788,9 +834,21 @@ export default function App() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#B31B1B] hover:bg-[#991818] active:bg-[#800000] text-white font-extrabold rounded-xl shadow-md transition duration-150 text-xs tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isSubmittingReg}
+                  className={`w-full py-3 bg-[#B31B1B] hover:bg-[#991818] active:bg-[#800000] text-white font-extrabold rounded-xl shadow-md transition duration-150 text-xs tracking-wider flex items-center justify-center gap-2 ${
+                    isSubmittingReg ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
                 >
-                  <UserPlus size={14} /> Register & Log In
+                  {isSubmittingReg ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>กำลังบันทึกข้อมูล...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={14} /> Register & Log In
+                    </>
+                  )}
                 </button>
               </form>
             )}
@@ -1113,7 +1171,7 @@ export default function App() {
             </button>
           )}
 
-          {['ADMIN', 'SUPER_ADVISOR'].includes(currentUser.Role) && (
+          {currentUser.Role === 'ADMIN' && (
             <button
               onClick={() => setActiveTab('admin')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
@@ -1249,7 +1307,7 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'admin' && ['ADMIN', 'SUPER_ADVISOR'].includes(currentUser.Role) && (
+            {activeTab === 'admin' && currentUser.Role === 'ADMIN' && (
               <div
                 key="admin"
               >
