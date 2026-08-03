@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { User, ConfigOption, OptionType, ActivityLog } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Settings, FileSpreadsheet, Plus, Trash2, Edit2, ShieldAlert, Check, PlusCircle, Search, RefreshCw, KeyRound } from 'lucide-react';
@@ -92,19 +93,45 @@ export default function AdminPanel({
       Status: newUserForm.Status || 'ACTIVE'
     };
 
-    await onAddUser(formattedUser);
-    setShowAddUserModal(false);
-    // Reset
-    setNewUserForm({
-      Email: '',
-      FullName: '',
-      Role: 'STUDENT',
-      StudentID: '',
-      Major: '',
-      Advisor: '',
-      CoAdvisor: '',
-      ThesisTitle: ''
+    Swal.fire({
+      title: 'กำลังบันทึกข้อมูล...',
+      text: 'กำลังบันทึกผู้ใช้รายใหม่ลงใน Google Sheets',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
+
+    try {
+      await onAddUser(formattedUser);
+      setShowAddUserModal(false);
+      Swal.fire({
+        icon: 'success',
+        title: 'บันทึกสำเร็จ!',
+        text: `เพิ่มผู้ใช้ ${formattedUser.FullName} เรียบร้อยแล้ว`,
+        timer: 2000,
+        showConfirmButton: false
+      });
+      // Reset
+      setNewUserForm({
+        Email: '',
+        FullName: '',
+        Role: 'STUDENT',
+        StudentID: '',
+        Major: '',
+        Advisor: '',
+        CoAdvisor: '',
+        ThesisTitle: ''
+      });
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+        confirmButtonColor: '#B31B1B'
+      });
+    }
   };
 
   const handleAddConfigSubmit = async (e: React.FormEvent) => {

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
-import { Award, BookOpen, Clock, CheckCircle2, AlertCircle, FileText, Users, Settings, Plus, GraduationCap, BellRing } from 'lucide-react';
+import { Award, BookOpen, Clock, CheckCircle2, AlertCircle, FileText, Users, Settings, Plus, GraduationCap, BellRing, Info } from 'lucide-react';
 
 interface DashboardProps {
   currentUser: User;
@@ -161,14 +161,40 @@ export default function Dashboard({
   }
 
   if (['ADVISOR', 'CO_ADVISOR', 'SUPER_ADVISOR'].includes(currentUser.Role)) {
+    const isSuperAdvisor = currentUser.Role === 'SUPER_ADVISOR';
+
+    // Find students under direct supervision of this advisor
+    const mySupervisedStudents = allStudents.filter(s => {
+      if (s.Role !== 'STUDENT') return false;
+      const isMain = s.Advisor && typeof s.Advisor === 'string' && s.Advisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
+      const isCo = s.CoAdvisor && typeof s.CoAdvisor === 'string' && s.CoAdvisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
+      return isMain || isCo;
+    });
+
+    const mySupervisedStudentIds = mySupervisedStudents.map(s => String(s.StudentID).trim());
+
+    // Filter pending certificates and activities belonging to supervised students
+    const myPendingCerts = certificates.filter(c =>
+      c.Status === 'PENDING' && mySupervisedStudentIds.includes(String(c.StudentID).trim())
+    );
+    const myPendingActs = activities.filter(a =>
+      a.Status === 'PENDING' && mySupervisedStudentIds.includes(String(a.StudentID).trim())
+    );
+
     return (
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-tu-red to-red-900 text-white rounded-2xl p-6 shadow-md">
           <div className="max-w-2xl">
-            <span className="bg-tu-gold text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">Faculty Major Advisor</span>
-            <h1 className="text-2xl font-bold mt-2">Welcome, Academic Advisor</h1>
+            <span className="bg-tu-gold text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
+              {isSuperAdvisor ? 'Super Advisor / Executive Oversight' : 'Faculty Major Advisor'}
+            </span>
+            <h1 className="text-2xl font-bold mt-2">
+              {isSuperAdvisor ? 'Welcome, Executive Advisor' : 'Welcome, Academic Advisor'}
+            </h1>
             <p className="text-red-100 mt-1 text-sm leading-relaxed">
-              You are logged in as {currentUser.FullName}. Review dissertation progress, academic milestones, and approve student activity portfolios.
+              {isSuperAdvisor
+                ? `You are logged in as ${currentUser.FullName} (SUPER_ADVISOR). Executive view allows monitoring all doctoral students' portfolios.`
+                : `You are logged in as ${currentUser.FullName}. Review dissertation progress, academic milestones, and approve student activity portfolios.`}
             </p>
           </div>
         </div>
@@ -182,7 +208,7 @@ export default function Dashboard({
             <div>
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Supervised Students</p>
               <h3 className="text-2xl font-bold text-gray-900">
-                {allStudents.filter(s => s.Advisor === currentUser.FullName || s.CoAdvisor === currentUser.FullName).length || 1} Students
+                {mySupervisedStudents.length} Students
               </h3>
             </div>
           </div>
@@ -194,7 +220,7 @@ export default function Dashboard({
             <div>
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Certificates to Review</p>
               <h3 className="text-2xl font-bold text-gray-900">
-                {certificates.filter(c => c.Status === 'PENDING').length} Items
+                {myPendingCerts.length} Items
               </h3>
             </div>
           </div>
@@ -206,17 +232,28 @@ export default function Dashboard({
             <div>
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Pending Activities</p>
               <h3 className="text-2xl font-bold text-gray-900">
-                {activities.filter(a => a.Status === 'PENDING').length} Items
+                {myPendingActs.length} Items
               </h3>
             </div>
           </div>
         </div>
 
+        {isSuperAdvisor && mySupervisedStudents.length === 0 && (
+          <div className="bg-amber-50/90 border border-amber-200 p-4.5 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-xs">
+            <Info size={20} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold text-amber-950 text-sm">Super Advisor Executive View (มุมมองผู้บริหารหลักสูตร)</p>
+              <p className="text-amber-800 leading-relaxed">
+                ท่านเข้าใช้งานในบทบาท <strong className="font-semibold text-amber-900">SUPER_ADVISOR</strong> (เช่น คณบดี หรือผู้บริหารหลักสูตร) โดยยังไม่ได้ถูกระบุเป็นอาจารย์ประจำชั้น/อาจารย์ที่ปรึกษาหลักของนักศึกษาคนใดโดยตรง การลงนามและอนุมัติกิจกรรมจะเป็นหน้าที่ของอาจารย์ที่ปรึกษาประจำตัวของนักศึกษา อย่างไรก็ตาม ท่านสามารถเข้าดูและติดตามข้อมูลพอร์ตโฟลิโอของนักศึกษาทุกคนในหลักสูตร ({allStudents.filter(s => s.Role === 'STUDENT').length} คน) ได้ตลอดเวลาผ่านเมนู <strong className="font-semibold text-amber-900">Advisor Portal</strong>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Advisor Aggregated Dissertation Progress (Sec 5.3) */}
         {(() => {
           // Find students supervised by this advisor
-          const supervisedStudents = allStudents.filter(s => s.Advisor === currentUser.FullName || s.CoAdvisor === currentUser.FullName);
+          const supervisedStudents = mySupervisedStudents;
           const studentIds = supervisedStudents.map(s => s.StudentID);
           
           // Aggregate milestone progress
