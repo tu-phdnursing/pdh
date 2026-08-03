@@ -36,7 +36,23 @@ import UserManualModal from './components/UserManualModal';
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('TU_PHD_CURRENT_USER');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const updateCurrentUser = (user: User | null) => {
+    setCurrentUser(user);
+    if (user) {
+      try { localStorage.setItem('TU_PHD_CURRENT_USER', JSON.stringify(user)); } catch (e) {}
+    } else {
+      try { localStorage.removeItem('TU_PHD_CURRENT_USER'); } catch (e) {}
+    }
+  };
   
   // Database States
   const [users, setUsers] = useState<User[]>([]);
@@ -111,7 +127,7 @@ export default function App() {
         // Find fresh copy of currentUser in DB
         const freshUser = fetchedUsers.find(u => u.UserID === currentUser.UserID);
         if (freshUser) {
-          setCurrentUser(freshUser);
+          updateCurrentUser(freshUser);
         }
       }
       if (!isSilent) {
@@ -197,7 +213,7 @@ export default function App() {
       const userPassword = String(match.Password || '1234').toLowerCase().trim();
       const inputPassword = loginPassword.toLowerCase().trim();
       if (userPassword === inputPassword) {
-        setCurrentUser(match);
+        updateCurrentUser(match);
         logActivity(match.UserID, 'LOGIN', `User ${match.FullName} logged into PhD Portfolio system`);
         setLoginError('');
         setActiveTab('dashboard');
@@ -308,7 +324,7 @@ export default function App() {
 
     const match = users.find(u => u.Email === targetEmail);
     if (match) {
-      setCurrentUser(match);
+      updateCurrentUser(match);
       logActivity(match.UserID, 'QUICK_LOGIN', `Quick Login bypass triggered as ${match.Role}`);
       setLoginError('');
       setActiveTab('dashboard');
@@ -319,7 +335,7 @@ export default function App() {
     if (currentUser) {
       logActivity(currentUser.UserID, 'LOGOUT', `User ${currentUser.FullName} logged out`);
     }
-    setCurrentUser(null);
+    updateCurrentUser(null);
     setStudentPortfolio(null);
   };
 
@@ -330,7 +346,7 @@ export default function App() {
       await saveUser(updatedProfile); // Background Sync
       setUsers(prev => prev.map(u => u.UserID === updatedProfile.UserID ? updatedProfile : u));
       if (currentUser && currentUser.UserID === updatedProfile.UserID) {
-        setCurrentUser(updatedProfile);
+        updateCurrentUser(updatedProfile);
       }
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 2000);
