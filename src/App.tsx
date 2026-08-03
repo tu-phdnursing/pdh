@@ -85,10 +85,12 @@ export default function App() {
     if (!isSilent) setSyncStatus('syncing');
     try {
       initializeDatabase();
-      const fetchedUsers = await getUsers();
-      const fetchedCerts = await getCertificates();
-      const fetchedActs = await getActivities();
-      const fetchedConfigs = await getConfigOptions();
+      const [fetchedUsers, fetchedCerts, fetchedActs, fetchedConfigs] = await Promise.all([
+        getUsers(),
+        getCertificates(),
+        getActivities(),
+        getConfigOptions()
+      ]);
       const scriptUrl = getAppsScriptUrl();
 
       setUsers(fetchedUsers);
