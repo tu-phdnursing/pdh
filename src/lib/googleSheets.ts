@@ -946,8 +946,10 @@ export function isImageFile(fileUrlOrObj: string | { name?: string; url?: string
   return false;
 }
 
-export function resolvePhotoUrl(url: string | null | undefined, defaultUrl: string = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80'): string {
-  if (!url) return defaultUrl;
+const NEUTRAL_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239CA3AF"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-3.8-1.03-4.84-2.6.03-.89 2.01-1.4 4.84-1.4 2.82 0 4.8 1.51 4.84 2.4-1.04 1.57-2.81 2.6-4.84 2.6z"/></svg>';
+
+export function resolvePhotoUrl(url: string | null | undefined, defaultUrl: string = NEUTRAL_AVATAR): string {
+  if (!url || !url.trim()) return defaultUrl;
   if (url.startsWith('LOCAL_FILE_')) {
     const cached = localStorage.getItem(url);
     return cached || defaultUrl;
