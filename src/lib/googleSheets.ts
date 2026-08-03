@@ -232,6 +232,25 @@ export function ensurePortfolioDefaults(data: any): StudentPortfolioData {
     merged.reflectionTransformation = '';
   }
 
+  if (Array.isArray(merged.researchExperience)) {
+    merged.researchExperience = merged.researchExperience.map((item: any) => {
+      if (!item || typeof item !== 'object') return null;
+      const sup = item.supervisor || item.ExperienceSupervisor || item.advisorName || item.Supervisor || item.Advisor || '';
+      return {
+        date: item.date || item.ExperienceDate || '',
+        activity: item.activity || item.ExperienceActivity || item.description || item.ExperienceDescription || '',
+        description: item.description || item.ExperienceDescription || item.activity || item.ExperienceActivity || '',
+        hours: Number(item.hours || item.Hours || item.ExperienceHours || 0),
+        supervisor: sup,
+        advisorName: item.advisorName || sup,
+        evidence: item.evidence || item.ExperienceEvidence || '',
+        isEndorsed: Boolean(item.isEndorsed || item.ExperienceEndorsed === 'TRUE' || item.ExperienceEndorsed === true || item.endorsedBy),
+        endorsedBy: item.endorsedBy || item.ExperienceEndorsedBy || '',
+        endorsementDate: item.endorsementDate || item.ExperienceEndorsementDate || ''
+      };
+    }).filter(Boolean) as any;
+  }
+
   return merged;
 }
 
@@ -537,6 +556,8 @@ export async function saveUser(user: User): Promise<void> {
       }
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'saveUser', user: userToSave })
       });
     } catch (e) {
@@ -557,6 +578,8 @@ export async function deleteUser(userId: string): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'deleteUser', userId })
       });
     } catch (e) {
@@ -604,6 +627,8 @@ export async function saveCertificate(cert: Certificate): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'saveCertificate', certificate: cert })
       });
     } catch (e) {
@@ -623,6 +648,8 @@ export async function deleteCertificate(certId: string): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'deleteCertificate', certId })
       });
     } catch (e) {
@@ -670,6 +697,8 @@ export async function saveActivity(act: Activity): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'saveActivity', activity: act })
       });
     } catch (e) {
@@ -689,6 +718,8 @@ export async function deleteActivity(activityId: string): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'deleteActivity', activityId })
       });
     } catch (e) {
@@ -736,6 +767,8 @@ export async function saveConfigOption(option: ConfigOption): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'saveConfigOption', config: option })
       });
     } catch (e) {
@@ -756,6 +789,8 @@ export async function deleteConfigOption(id: string): Promise<void> {
     try {
       await fetch(scriptUrl, {
         method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'deleteConfigOption', id })
       });
     } catch (e) {
@@ -767,15 +802,29 @@ export async function deleteConfigOption(id: string): Promise<void> {
 export async function getAllPortfolios(): Promise<{studentId: string, portfolio: StudentPortfolioData}[]> {
   initializeDatabase();
   const scriptUrl = getAppsScriptUrl();
+  const allPorts: {studentId: string, portfolio: StudentPortfolioData}[] = [];
+  
   if (scriptUrl) {
     try {
-      // In a real app we'd fetch all from Apps Script, for now we just rely on LocalStorage since this is simulation
+      const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=allPortfolios`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach((item: any) => {
+            if (item.studentId && item.portfolio && typeof item.portfolio === 'object') {
+              const defaults = ensurePortfolioDefaults(item.portfolio);
+              localStorage.setItem(`${KEYS.PORTFOLIO}_${item.studentId}`, JSON.stringify(defaults));
+              allPorts.push({ studentId: item.studentId, portfolio: defaults });
+            }
+          });
+          if (allPorts.length > 0) return allPorts;
+        }
+      }
     } catch (e) {
       console.warn('Sync all portfolios failed, falling back to LocalStorage:', e);
     }
   }
   
-  const allPorts = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && (key.startsWith(KEYS.PORTFOLIO + '_') || key === KEYS.PORTFOLIO)) {
@@ -785,10 +834,13 @@ export async function getAllPortfolios(): Promise<{studentId: string, portfolio:
         
         const data = localStorage.getItem(key);
         if (data) {
-          allPorts.push({
-            studentId,
-            portfolio: ensurePortfolioDefaults(JSON.parse(data))
-          });
+          const parsed = JSON.parse(data);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            allPorts.push({
+              studentId,
+              portfolio: ensurePortfolioDefaults(parsed)
+            });
+          }
         }
       } catch (e) {
         // ignore
@@ -800,36 +852,46 @@ export async function getAllPortfolios(): Promise<{studentId: string, portfolio:
 
 export async function getStudentPortfolio(studentId: string): Promise<StudentPortfolioData> {
   initializeDatabase();
+  let fetchedData: any = null;
   const scriptUrl = getAppsScriptUrl();
   if (scriptUrl) {
     try {
       const res = await fetchWithTimeout(`${scriptUrl}?t=${new Date().getTime()}&type=portfolio&studentId=${studentId}`);
       if (res.ok) {
         const data = await res.json();
-        if (data && !data.error) {
-          localStorage.setItem(`${KEYS.PORTFOLIO}_${studentId}`, JSON.stringify(data));
-          return ensurePortfolioDefaults(data);
+        // Guard check: ensure data is a valid portfolio object and not an empty array [] or error
+        if (data && !data.error && typeof data === 'object' && !Array.isArray(data) && (data.researchExperience !== undefined || data.academicBackground !== undefined)) {
+          fetchedData = data;
         }
       }
     } catch (e) {
       console.warn('Sync portfolio failed, falling back to LocalStorage:', e);
     }
   }
-  // Fallback to STUDENT-1 if any ID to have realistic simulation preloaded
+
   const storeKey = studentId === '6601010024' ? KEYS.PORTFOLIO : `${KEYS.PORTFOLIO}_${studentId}`;
-  const localData = localStorage.getItem(storeKey);
-  if (localData) {
-    try {
-      const parsed = JSON.parse(localData);
-      if (parsed && !parsed.error) {
-        return ensurePortfolioDefaults(parsed);
-      }
-    } catch (e) {}
+  let baseData = fetchedData;
+
+  if (!baseData) {
+    const localData = localStorage.getItem(storeKey);
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        if (parsed && !parsed.error && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          baseData = parsed;
+        }
+      } catch (e) {}
+    }
   }
-  // Otherwise duplicate the DEFAULT structure for this new student
-  const newData = { ...DEFAULT_STUDENT_PORTFOLIO };
-  localStorage.setItem(storeKey, JSON.stringify(newData));
-  return ensurePortfolioDefaults(newData);
+
+  if (!baseData) {
+    baseData = { ...DEFAULT_STUDENT_PORTFOLIO };
+  }
+
+  const result = ensurePortfolioDefaults(baseData);
+
+  localStorage.setItem(storeKey, JSON.stringify(result));
+  return result;
 }
 
 export async function saveStudentPortfolio(studentId: string, data: StudentPortfolioData): Promise<void> {
@@ -843,6 +905,8 @@ export async function saveStudentPortfolio(studentId: string, data: StudentPortf
     // Non-blocking asynchronous sync so the UI never hangs or waits for Apps Script
     fetch(scriptUrl, {
       method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'savePortfolio', studentId, portfolio: data })
     }).catch(e => console.error('Background sync failed:', e));
   }
@@ -889,6 +953,7 @@ export async function uploadFileToDrive(
         const base64Data = localDataUrl.split(',')[1];
         const response = await fetch(scriptUrl, {
           method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'uploadFile',
             studentId,
@@ -1013,9 +1078,13 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
 
 function getSpreadsheet() {
   try {
-    return SpreadsheetApp.openById("1Sa9C7gbImdq5B-g131S6IdM7ITW4cPNvpXrf_eOkcGA");
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) return ss;
+  } catch (e) {}
+  try {
+    return SpreadsheetApp.openById("1eAnp9C-qecp4RMM_L5mQyHDRQ3GtLCzXFqNm9-RHfqc");
   } catch (err) {
-    return SpreadsheetApp.getActiveSpreadsheet();
+    return null;
   }
 }
 
@@ -1084,6 +1153,19 @@ function doGet(e) {
       var studentId = e.parameter.studentId;
       var portData = loadPortfolioFromSheets(studentId);
       return ContentService.createTextOutput(JSON.stringify(portData))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else if (type === 'allPortfolios') {
+      var usersSheet = getOrCreateSheet('Users');
+      var usersData = getSheetDataAsJson(usersSheet);
+      var allP = [];
+      for (var u = 0; u < usersData.length; u++) {
+        var stId = usersData[u].StudentID;
+        if (stId) {
+          var pData = loadPortfolioFromSheets(stId);
+          allP.push({ studentId: stId, portfolio: pData });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify(allP))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
@@ -1252,7 +1334,7 @@ function getOrCreateSheet(sheetName) {
       "P3_EnglishLanguage": ["StudentID", "RecordType", "TestName", "DateTaken", "ScoreAchieved", "RequiredScore", "TestStatus", "TestEvidence", "ActivityDate", "ActivityName", "ActivityOrganizer", "ActivityDescription", "ActivityEvidence", "EnglishReflection", "VerificationComments", "VerificationName", "VerificationDate", "LastUpdated"],
       "P4_Coursework": ["StudentID", "RecordType", "CourseCode", "CourseTitle", "Semester", "Credits", "Grade", "WorkshopDate", "WorkshopTitle", "WorkshopOrganizer", "WorkshopRole", "WorkshopKeyLearning", "LastUpdated"],
       "P5_Dissertation": ["StudentID", "RecordType", "InfoTitle", "InfoBackground", "InfoProblem", "InfoObjectives", "InfoHypotheses", "InfoConceptualFramework", "InfoMethodology", "InfoResearchTopic", "ProgressActivity", "ProgressDate", "ProgressDetails", "ProgressEvidence", "MeetingDate", "MeetingPersons", "MeetingIssues", "MeetingActionPoints", "LastUpdated", "ProgressObstacles"],
-      "P6_ResearchExperience": ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "LastUpdated"],
+      "P6_ResearchExperience": ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "ExperienceEndorsed", "ExperienceEndorsedBy", "ExperienceEndorsementDate", "LastUpdated"],
       "P7_ScholarlyOutput": ["StudentID", "RecordType", "ConfDate", "ConfTitle", "ConfName", "ConfType", "ConfVenue", "PubYear", "PubTitle", "PubJournal", "PubStatus", "PubDoi", "MscTitle", "MscJournal", "MscStage", "MscPlannedSubmission", "GrantTitle", "GrantSource", "GrantRole", "GrantAmount", "GrantPeriod", "AwardDate", "AwardName", "AwardOrganizer", "AwardDescription", "LastUpdated"],
       "P8_TeachingService": ["StudentID", "RecordType", "TeachSemester", "TeachCourse", "TeachRole", "TeachStudentLevel", "TeachDescription", "SupervisionDate", "SupervisionType", "SupervisionStudentLevel", "SupervisionDescription", "ServiceDate", "ServiceActivity", "ServiceRole", "ServiceOrganization", "LastUpdated"],
       "P9_LeadershipNetworking": ["StudentID", "LeadershipDate", "LeadershipRole", "LeadershipOrganization", "LeadershipResponsibilities", "LastUpdated"],
@@ -1289,7 +1371,7 @@ function setupDatabase() {
     "P3_EnglishLanguage": ["StudentID", "RecordType", "TestName", "DateTaken", "ScoreAchieved", "RequiredScore", "TestStatus", "TestEvidence", "ActivityDate", "ActivityName", "ActivityOrganizer", "ActivityDescription", "ActivityEvidence", "EnglishReflection", "VerificationComments", "VerificationName", "VerificationDate", "LastUpdated"],
     "P4_Coursework": ["StudentID", "RecordType", "CourseCode", "CourseTitle", "Semester", "Credits", "Grade", "WorkshopDate", "WorkshopTitle", "WorkshopOrganizer", "WorkshopRole", "WorkshopKeyLearning", "LastUpdated"],
     "P5_Dissertation": ["StudentID", "RecordType", "InfoTitle", "InfoBackground", "InfoProblem", "InfoObjectives", "InfoHypotheses", "InfoConceptualFramework", "InfoMethodology", "InfoResearchTopic", "ProgressActivity", "ProgressDate", "ProgressDetails", "ProgressEvidence", "MeetingDate", "MeetingPersons", "MeetingIssues", "MeetingActionPoints", "LastUpdated", "ProgressObstacles"],
-    "P6_ResearchExperience": ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "LastUpdated"],
+    "P6_ResearchExperience": ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "ExperienceEndorsed", "ExperienceEndorsedBy", "ExperienceEndorsementDate", "LastUpdated"],
     "P7_ScholarlyOutput": ["StudentID", "RecordType", "ConfDate", "ConfTitle", "ConfName", "ConfType", "ConfVenue", "PubYear", "PubTitle", "PubJournal", "PubStatus", "PubDoi", "MscTitle", "MscJournal", "MscStage", "MscPlannedSubmission", "GrantTitle", "GrantSource", "GrantRole", "GrantAmount", "GrantPeriod", "AwardDate", "AwardName", "AwardOrganizer", "AwardDescription", "LastUpdated"],
     "P8_TeachingService": ["StudentID", "RecordType", "TeachSemester", "TeachCourse", "TeachRole", "TeachStudentLevel", "TeachDescription", "SupervisionDate", "SupervisionType", "SupervisionStudentLevel", "SupervisionDescription", "ServiceDate", "ServiceActivity", "ServiceRole", "ServiceOrganization", "LastUpdated"],
     "P9_LeadershipNetworking": ["StudentID", "LeadershipDate", "LeadershipRole", "LeadershipOrganization", "LeadershipResponsibilities", "LastUpdated"],
@@ -1487,9 +1569,13 @@ function loadPortfolioFromSheets(studentId) {
   function findRowsByStudentID(sheet, sId) {
     var data = getSheetDataAsJson(sheet);
     var matched = [];
+    var targetIdStr = String(sId || '').split('.')[0].trim().toLowerCase();
     for (var i = 0; i < data.length; i++) {
-      if (String(data[i].StudentID) === String(sId)) {
-        matched.push(data[i]);
+      var row = data[i];
+      var rowStudentId = row.StudentID || row['Student ID'] || row['Student_ID'] || row.studentId || '';
+      var rowIdStr = String(rowStudentId || '').split('.')[0].trim().toLowerCase();
+      if (rowIdStr && targetIdStr && rowIdStr === targetIdStr) {
+        matched.push(row);
       }
     }
     return matched;
@@ -1697,7 +1783,8 @@ function loadPortfolioFromSheets(studentId) {
         portfolio.researchExperience = [];
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
-          if (r.RecordType === "ETHICS") {
+          var recType = String(r.RecordType || '').trim().toUpperCase();
+          if (recType === "ETHICS" || recType.indexOf("ETHIC") !== -1) {
             portfolio.ethicsGovernance = {
               dateApplied: formatDate(r.EthicsDateApplied),
               dateApproved: formatDate(r.EthicsDateApproved),
@@ -1708,16 +1795,18 @@ function loadPortfolioFromSheets(studentId) {
             if (r.ResearchReflection !== undefined) {
               portfolio.researchReflection = r.ResearchReflection;
             }
-          } else if (r.RecordType === "EXPERIENCE") {
+          } else {
+            var supervisorVal = r.ExperienceSupervisor || r.Supervisor || r.ExperienceAdvisor || r.Advisor || r.AdvisorName || "";
+            var isEnd = String(r.ExperienceEndorsed || '').trim().toUpperCase() === "TRUE" || String(r.ExperienceEndorsed || '').trim() === "1" || Boolean(r.ExperienceEndorsedBy);
             portfolio.researchExperience.push({
-              date: formatDate(r.ExperienceDate),
-              activity: r.ExperienceActivity || "",
-              description: r.ExperienceDescription || "",
-              hours: Number(r.ExperienceHours || 0),
-              supervisor: r.ExperienceSupervisor || "",
-              advisorName: r.ExperienceSupervisor || "",
-              evidence: r.ExperienceEvidence || "",
-              isEndorsed: String(r.ExperienceEndorsed).toUpperCase() === "TRUE" || Boolean(r.ExperienceEndorsedBy),
+              date: formatDate(r.ExperienceDate || r.Date),
+              activity: r.ExperienceActivity || r.Activity || r.ExperienceDescription || "",
+              description: r.ExperienceDescription || r.Description || r.ExperienceActivity || "",
+              hours: Number(r.ExperienceHours || r.Hours || 0),
+              supervisor: supervisorVal,
+              advisorName: supervisorVal,
+              evidence: r.ExperienceEvidence || r.Evidence || "",
+              isEndorsed: isEnd,
               endorsedBy: r.ExperienceEndorsedBy || "",
               endorsementDate: r.ExperienceEndorsementDate || ""
             });
@@ -2110,14 +2199,16 @@ function savePortfolioToSheets(studentId, portfolio) {
   var s6 = ss.getSheetByName("P6_ResearchExperience");
   if (s6) {
     deleteRow(s6, "StudentID", studentId);
+    var p6Cols = ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "ExperienceEndorsed", "ExperienceEndorsedBy", "ExperienceEndorsementDate", "LastUpdated"];
+    s6.getRange(1, 1, 1, p6Cols.length).setValues([p6Cols]);
     var eg = portfolio.ethicsGovernance || {};
-    appendObjectAsRow(s6, ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "LastUpdated"], {
+    appendObjectAsRow(s6, p6Cols, {
       StudentID: studentId, RecordType: "ETHICS", EthicsDateApplied: formatDate(eg.dateApplied), EthicsDateApproved: formatDate(eg.dateApproved), EthicsApprovalNumber: eg.approvalNumber, EthicsAmendments: eg.amendments, EthicsConfidentiality: eg.confidentiality, ResearchReflection: portfolio.researchReflection || "", LastUpdated: nowStr
     });
     var resExp = portfolio.researchExperience || [];
     for (var i = 0; i < resExp.length; i++) {
       var re = resExp[i];
-      appendObjectAsRow(s6, ["StudentID", "RecordType", "EthicsDateApplied", "EthicsDateApproved", "EthicsApprovalNumber", "EthicsAmendments", "EthicsConfidentiality", "ExperienceDate", "ExperienceActivity", "ExperienceDescription", "ExperienceHours", "ExperienceSupervisor", "ExperienceEvidence", "ResearchReflection", "ExperienceEndorsed", "ExperienceEndorsedBy", "ExperienceEndorsementDate", "LastUpdated"], {
+      appendObjectAsRow(s6, p6Cols, {
         StudentID: studentId, RecordType: "EXPERIENCE", ExperienceDate: formatDate(re.date), ExperienceActivity: re.activity, ExperienceDescription: re.description, ExperienceHours: re.hours, ExperienceSupervisor: re.supervisor || re.advisorName, ExperienceEvidence: typeof re.evidence === 'string' ? re.evidence : JSON.stringify(re.evidence || []), ExperienceEndorsed: re.isEndorsed ? "TRUE" : "FALSE", ExperienceEndorsedBy: re.endorsedBy || "", ExperienceEndorsementDate: re.endorsementDate || "", LastUpdated: nowStr
       });
     }
@@ -2462,5 +2553,68 @@ function getDefaultPortfolio(studentId) {
     endorsements: [],
     supportingFiles: []
   };
-}
+};
 `;
+
+/**
+ * Checks if the logged in user's full name matches the designated advisor name
+ * for confirming/endorsing portfolio records (e.g. 180 Hours Research Experience).
+ */
+export function isMatchingAdvisorName(
+  currentUserFullName?: string,
+  targetAdvisorName?: string,
+  studentAdvisor?: string,
+  studentCoAdvisor?: string
+): boolean {
+  if (!currentUserFullName || !currentUserFullName.trim()) return false;
+
+  const normalize = (str: string) => {
+    return str
+      .replace(/\([^)]+\)/g, ' ')
+      .replace(/(ผศ|รศ|ศ|ดร|นาย|นาง|นางสาว|assoc|prof|asst|dr|phd|m\.sc|b\.sc|doctoral|advisor|super_advisor)/gi, '')
+      .replace(/[^a-zA-Z0-9\u0E00-\u0E7F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  };
+
+  const currentRaw = currentUserFullName.trim().toLowerCase();
+  const currentClean = normalize(currentUserFullName);
+
+  const targetsToTest: string[] = [];
+  if (targetAdvisorName && targetAdvisorName.trim()) {
+    targetsToTest.push(targetAdvisorName.trim());
+  } else {
+    if (studentAdvisor && studentAdvisor.trim()) targetsToTest.push(studentAdvisor.trim());
+    if (studentCoAdvisor && studentCoAdvisor.trim()) targetsToTest.push(studentCoAdvisor.trim());
+  }
+
+  if (targetsToTest.length === 0) return false;
+
+  for (const rawTarget of targetsToTest) {
+    const targetRaw = rawTarget.toLowerCase();
+    const targetClean = normalize(rawTarget);
+
+    // 1. Exact or substring match on raw or clean strings
+    if (currentRaw === targetRaw || targetRaw.includes(currentRaw) || currentRaw.includes(targetRaw)) {
+      return true;
+    }
+
+    if (currentClean && targetClean) {
+      if (currentClean === targetClean || targetClean.includes(currentClean) || currentClean.includes(targetClean)) {
+        return true;
+      }
+
+      // 2. Token overlap (first name / last name match)
+      const currentTokens = currentClean.split(' ').filter(t => t.length >= 3);
+      const targetTokens = targetClean.split(' ').filter(t => t.length >= 3);
+
+      const hasSharedToken = currentTokens.some(ct => targetTokens.some(tt => tt === ct || tt.includes(ct) || ct.includes(tt)));
+      if (hasSharedToken) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
