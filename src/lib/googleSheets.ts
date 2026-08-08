@@ -2575,6 +2575,7 @@ export function cleanAdvisorName(str?: string): string {
     'assistant', 'associate', 'professor', 'asst', 'assoc', 'prof',
     'dr', 'doctor', 'phd', 'msc', 'bsc', 'lecturer', 'instructor',
     'mr', 'mrs', 'ms', 'miss', 'doctoral', 'advisor', 'coadvisor', 'superadvisor',
+    'main', 'co', 'unassigned', 'na', 'none',
     'ผู้ช่วยศาสตราจารย์', 'รองศาสตราจารย์', 'ศาสตราจารย์', 'อาจารย์',
     'ผศ', 'รศ', 'ศ', 'อ', 'ดร', 'นาย', 'นาง', 'นางสาว', 'นส'
   ]);
@@ -2611,34 +2612,28 @@ export function isMatchingAdvisorName(
   for (const rawTarget of targetsToTest) {
     const cleanTarget = cleanAdvisorName(rawTarget);
     if (!cleanTarget) continue;
+    if (cleanTarget === 'unassigned' || cleanTarget === 'na' || cleanTarget === 'none') continue;
 
-    // 1. Exact match on cleaned strings (e.g. "charuwan kritpracha" === "charuwan kritpracha")
+    // 1. Exact match on cleaned strings (e.g. "wongchan petpichetchian" === "wongchan petpichetchian")
     if (cleanUser === cleanTarget) {
       return true;
     }
 
-    // 2. Substring match if name is long enough (>= 4 chars)
-    if (cleanUser.length >= 4 && cleanTarget.length >= 4) {
-      if (cleanUser.includes(cleanTarget) || cleanTarget.includes(cleanUser)) {
-        return true;
-      }
-    }
-
-    // 3. Token match: check if all tokens of one name exist in the other
+    // 2. Token match: check if first and last name tokens match
     const userTokens = cleanUser.split(' ').filter(t => t.length >= 2);
     const targetTokens = cleanTarget.split(' ').filter(t => t.length >= 2);
 
-    if (userTokens.length > 0 && targetTokens.length > 0) {
-      const allUserTokensInTarget = userTokens.every(ut =>
-        targetTokens.some(tt => tt === ut || tt.includes(ut) || ut.includes(tt))
-      );
-      const allTargetTokensInUser = targetTokens.every(tt =>
-        userTokens.some(ut => ut === tt || ut.includes(ut) || tt.includes(ut))
-      );
+    if (userTokens.length === 0 || targetTokens.length === 0) continue;
 
-      if (allUserTokensInTarget || allTargetTokensInUser) {
-        return true;
-      }
+    const allUserInTarget = userTokens.every(ut =>
+      targetTokens.some(tt => tt === ut || (ut.length >= 4 && tt.length >= 4 && (tt.includes(ut) || ut.includes(tt))))
+    );
+    const allTargetInUser = targetTokens.every(tt =>
+      userTokens.some(ut => ut === tt || (ut.length >= 4 && tt.length >= 4 && (ut.includes(tt) || tt.includes(ut))))
+    );
+
+    if (allUserInTarget || allTargetInUser) {
+      return true;
     }
   }
 
