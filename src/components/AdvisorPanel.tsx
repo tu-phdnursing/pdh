@@ -117,8 +117,8 @@ export default function AdvisorPanel({
 
   // Helper to check advisor relationship to logged-in user
   const getAdvisorRelation = (student: User) => {
-    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor, student.Advisor, student.CoAdvisor);
-    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor, student.Advisor, student.CoAdvisor);
+    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor);
+    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor);
     if (isMain) return 'MAIN';
     if (isCo) return 'CO';
     return 'EXECUTIVE';
@@ -145,8 +145,8 @@ export default function AdvisorPanel({
   // Check if current logged-in advisor is assigned as main or co-advisor of the selected student
   const isAssignedAdvisor = activeStudent ? (
     currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
-    isMatchingAdvisorName(currentUser.FullName, activeStudent.Advisor, activeStudent.Advisor, activeStudent.CoAdvisor) ||
-    isMatchingAdvisorName(currentUser.FullName, activeStudent.CoAdvisor, activeStudent.Advisor, activeStudent.CoAdvisor)
+    isMatchingAdvisorName(currentUser.FullName, activeStudent.Advisor) ||
+    isMatchingAdvisorName(currentUser.FullName, activeStudent.CoAdvisor)
   ) : false;
 
   const handleVerifyCert = async (certId: string, status: 'APPROVED' | 'REJECTED') => {

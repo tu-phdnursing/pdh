@@ -39,8 +39,8 @@ export default function StudentProgressDashboard({ students, currentUser, onSele
 
   const getAdvisorRelation = (student: User) => {
     if (!currentUser) return 'OTHER';
-    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor, student.Advisor, student.CoAdvisor);
-    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor, student.Advisor, student.CoAdvisor);
+    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor);
+    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor);
     if (isMain) return 'MAIN';
     if (isCo) return 'CO';
     return 'OTHER';

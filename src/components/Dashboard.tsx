@@ -167,8 +167,8 @@ export default function Dashboard({
     // Find students under direct supervision of this advisor
     const mySupervisedStudents = allStudents.filter(s => {
       if (s.Role !== 'STUDENT') return false;
-      const isMain = isMatchingAdvisorName(currentUser.FullName, s.Advisor, s.Advisor, s.CoAdvisor);
-      const isCo = isMatchingAdvisorName(currentUser.FullName, s.CoAdvisor, s.Advisor, s.CoAdvisor);
+      const isMain = isMatchingAdvisorName(currentUser.FullName, s.Advisor);
+      const isCo = isMatchingAdvisorName(currentUser.FullName, s.CoAdvisor);
       return isMain || isCo;
     });
 
