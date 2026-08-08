@@ -2557,8 +2557,35 @@ function getDefaultPortfolio(studentId) {
 `;
 
 /**
+ * Cleans an advisor or user name string by removing academic titles, prefixes,
+ * honorifics, special characters, and extra spaces.
+ */
+export function cleanAdvisorName(str?: string): string {
+  if (!str) return '';
+  let s = str.trim().toLowerCase();
+
+  // Remove bracketed/parenthesized tags e.g. (Ph.D.), (Advisor), (Main)
+  s = s.replace(/\([^)]*\)/g, ' ');
+
+  // Replace dots, commas, dashes, slashes, underscores with spaces
+  s = s.replace(/[\.,\-_/]/g, ' ');
+
+  // List of title/prefix words to exclude from name matching
+  const titleTokens = new Set([
+    'assistant', 'associate', 'professor', 'asst', 'assoc', 'prof',
+    'dr', 'doctor', 'phd', 'msc', 'bsc', 'lecturer', 'instructor',
+    'mr', 'mrs', 'ms', 'miss', 'doctoral', 'advisor', 'coadvisor', 'superadvisor',
+    'ผู้ช่วยศาสตราจารย์', 'รองศาสตราจารย์', 'ศาสตราจารย์', 'อาจารย์',
+    'ผศ', 'รศ', 'ศ', 'อ', 'ดร', 'นาย', 'นาง', 'นางสาว', 'นส'
+  ]);
+
+  const tokens = s.split(/\s+/).filter(t => t.length > 0 && !titleTokens.has(t));
+  return tokens.join(' ').trim();
+}
+
+/**
  * Checks if the logged in user's full name matches the designated advisor name
- * for confirming/endorsing portfolio records (e.g. 180 Hours Research Experience).
+ * for confirming/endorsing portfolio records or determining supervised advisee relationship.
  */
 export function isMatchingAdvisorName(
   currentUserFullName?: string,
@@ -2568,18 +2595,8 @@ export function isMatchingAdvisorName(
 ): boolean {
   if (!currentUserFullName || !currentUserFullName.trim()) return false;
 
-  const normalize = (str: string) => {
-    return str
-      .replace(/\([^)]+\)/g, ' ')
-      .replace(/(ผศ|รศ|ศ|ดร|นาย|นาง|นางสาว|assoc|prof|asst|dr|phd|m\.sc|b\.sc|doctoral|advisor|super_advisor)/gi, '')
-      .replace(/[^a-zA-Z0-9\u0E00-\u0E7F]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
-  };
-
-  const currentRaw = currentUserFullName.trim().toLowerCase();
-  const currentClean = normalize(currentUserFullName);
+  const cleanUser = cleanAdvisorName(currentUserFullName);
+  if (!cleanUser) return false;
 
   const targetsToTest: string[] = [];
   if (targetAdvisorName && targetAdvisorName.trim()) {
@@ -2592,25 +2609,34 @@ export function isMatchingAdvisorName(
   if (targetsToTest.length === 0) return false;
 
   for (const rawTarget of targetsToTest) {
-    const targetRaw = rawTarget.toLowerCase();
-    const targetClean = normalize(rawTarget);
+    const cleanTarget = cleanAdvisorName(rawTarget);
+    if (!cleanTarget) continue;
 
-    // 1. Exact or substring match on raw or clean strings
-    if (currentRaw === targetRaw || targetRaw.includes(currentRaw) || currentRaw.includes(targetRaw)) {
+    // 1. Exact match on cleaned strings (e.g. "charuwan kritpracha" === "charuwan kritpracha")
+    if (cleanUser === cleanTarget) {
       return true;
     }
 
-    if (currentClean && targetClean) {
-      if (currentClean === targetClean || targetClean.includes(currentClean) || currentClean.includes(targetClean)) {
+    // 2. Substring match if name is long enough (>= 4 chars)
+    if (cleanUser.length >= 4 && cleanTarget.length >= 4) {
+      if (cleanUser.includes(cleanTarget) || cleanTarget.includes(cleanUser)) {
         return true;
       }
+    }
 
-      // 2. Token overlap (first name / last name match)
-      const currentTokens = currentClean.split(' ').filter(t => t.length >= 3);
-      const targetTokens = targetClean.split(' ').filter(t => t.length >= 3);
+    // 3. Token match: check if all tokens of one name exist in the other
+    const userTokens = cleanUser.split(' ').filter(t => t.length >= 2);
+    const targetTokens = cleanTarget.split(' ').filter(t => t.length >= 2);
 
-      const hasSharedToken = currentTokens.some(ct => targetTokens.some(tt => tt === ct || tt.includes(ct) || ct.includes(tt)));
-      if (hasSharedToken) {
+    if (userTokens.length > 0 && targetTokens.length > 0) {
+      const allUserTokensInTarget = userTokens.every(ut =>
+        targetTokens.some(tt => tt === ut || tt.includes(ut) || ut.includes(tt))
+      );
+      const allTargetTokensInUser = targetTokens.every(tt =>
+        userTokens.some(ut => ut === tt || ut.includes(ut) || tt.includes(ut))
+      );
+
+      if (allUserTokensInTarget || allTargetTokensInUser) {
         return true;
       }
     }
