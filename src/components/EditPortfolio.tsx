@@ -2131,7 +2131,7 @@ export default function EditPortfolio({
                 {formData.researchExperience.map((item, idx) => {
                   const targetAdvisorName = item.advisorName || item.supervisor || '';
                   const isAuthorizedAdvisor = currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
-                    isMatchingAdvisorName(currentUser.FullName, targetAdvisorName, currentUser.Advisor, currentUser.CoAdvisor);
+                    isMatchingAdvisorName(currentUser.FullName, targetAdvisorName);
 
                   return (
                     <div key={idx} className="p-4 bg-[#EEF2F6] rounded-xl border border-slate-300 relative space-y-3 shadow-xs">
