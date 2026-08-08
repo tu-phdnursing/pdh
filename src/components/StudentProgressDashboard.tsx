@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { User, StudentPortfolioData } from '../types';
-import { getStudentPortfolio } from '../lib/googleSheets';
-import { Search, Filter, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { getStudentPortfolio, isMatchingAdvisorName } from '../lib/googleSheets';
+import { Search, Filter, AlertCircle, CheckCircle, Clock, Crown, Users, ShieldCheck } from 'lucide-react';
 
 interface StudentProgressDashboardProps {
   students: User[];
+  currentUser?: User;
   onSelectStudent?: (student: User) => void;
 }
 
-export default function StudentProgressDashboard({ students, onSelectStudent }: StudentProgressDashboardProps) {
+export default function StudentProgressDashboard({ students, currentUser, onSelectStudent }: StudentProgressDashboardProps) {
   const [portfolios, setPortfolios] = useState<{ [key: string]: StudentPortfolioData | null }>({});
   const [loading, setLoading] = useState(true);
   const [nameFilter, setNameFilter] = useState('');
   const [idFilter, setIdFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
+  const [supervisionScopeFilter, setSupervisionScopeFilter] = useState<'ALL' | 'MY_DIRECT'>('ALL');
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -35,10 +37,23 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
     }
   }, [students]);
 
+  const getAdvisorRelation = (student: User) => {
+    if (!currentUser) return 'OTHER';
+    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor, student.Advisor, student.CoAdvisor);
+    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor, student.Advisor, student.CoAdvisor);
+    if (isMain) return 'MAIN';
+    if (isCo) return 'CO';
+    return 'OTHER';
+  };
+
   const filteredStudents = students.filter(s => {
     if (nameFilter && !s.FullName.toLowerCase().includes(nameFilter.toLowerCase())) return false;
     if (idFilter && !(s.StudentID || '').toLowerCase().includes(idFilter.toLowerCase())) return false;
     if (yearFilter && !String(s.YearOfAdmission || '').toLowerCase().includes(yearFilter.toLowerCase())) return false;
+    if (supervisionScopeFilter === 'MY_DIRECT' && currentUser) {
+      const rel = getAdvisorRelation(s);
+      if (rel !== 'MAIN' && rel !== 'CO') return false;
+    }
     return true;
   });
 
@@ -112,7 +127,7 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
       })()}
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div>
           <label className="text-xs font-bold text-gray-500 block mb-1">Filter by Name</label>
           <input
@@ -146,6 +161,17 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
             ))}
           </select>
         </div>
+        <div>
+          <label className="text-xs font-bold text-gray-500 block mb-1">Supervision Scope</label>
+          <select
+            value={supervisionScopeFilter}
+            onChange={e => setSupervisionScopeFilter(e.target.value as 'ALL' | 'MY_DIRECT')}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium bg-gray-50"
+          >
+            <option value="ALL">All Program Students (นักศึกษาทั้งหมด)</option>
+            <option value="MY_DIRECT">My Direct Advisees Only (เฉพาะในความดูแล)</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -154,6 +180,7 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
           <thead>
             <tr className="bg-gray-50 border-y border-gray-200 text-xs text-gray-500">
               <th className="py-3 px-4 font-bold">Student</th>
+              <th className="py-3 px-4 font-bold">Assigned Advisors</th>
               <th className="py-3 px-4 font-bold">Latest Activity / Milestone</th>
               <th className="py-3 px-4 font-bold">Progress</th>
               <th className="py-3 px-4 font-bold">Obstacles</th>
@@ -167,6 +194,7 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
               const today = new Date();
               const currentYear = today.getFullYear();
               const currentMonth = today.getMonth() + 1;
+              const rel = getAdvisorRelation(stud);
               
               let latestProgress = null;
               
@@ -197,7 +225,6 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
                 latestProgress = overdueItems[0];
               } else {
                 // If nothing is overdue, maybe they have completed everything or nothing is due yet
-                // "ถ้าอันไหนยังไม่ Completed แต่ยังไม่ถึงเวลาที่กำหนดไม่ต้องนำมาแสดง"
                 latestProgress = null; 
               }
               
@@ -206,8 +233,27 @@ export default function StudentProgressDashboard({ students, onSelectStudent }: 
               return (
                 <tr key={stud.UserID} className="hover:bg-red-50/20 transition-colors cursor-pointer" onClick={() => onSelectStudent && onSelectStudent(stud)}>
                   <td className="py-3 px-4">
-                    <div className="font-bold text-gray-800 text-sm">{stud.FullName}</div>
-                    <div className="text-xs text-gray-500">{stud.StudentID} • Year {stud.YearOfAdmission || '-'}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-bold text-gray-800 text-sm">{stud.FullName}</div>
+                      {rel === 'MAIN' ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                          <Crown size={9} className="text-emerald-600" /> ที่ปรึกษาหลัก
+                        </span>
+                      ) : rel === 'CO' ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full">
+                          <Users size={9} className="text-sky-600" /> ที่ปรึกษาร่วม
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-medium text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                          <ShieldCheck size={9} className="text-gray-400" /> ภาพรวมหลักสูตร
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">ID: {stud.StudentID} • Year {stud.YearOfAdmission || '-'}</div>
+                  </td>
+                  <td className="py-3 px-4 text-xs text-gray-600 space-y-0.5">
+                    <div><span className="text-gray-400 font-medium">Advisor:</span> {stud.Advisor || 'Unassigned'}</div>
+                    <div><span className="text-gray-400 font-medium">Co-Advisor:</span> {stud.CoAdvisor || 'Unassigned'}</div>
                   </td>
                   <td className="py-3 px-4">
                     {latestProgress ? (

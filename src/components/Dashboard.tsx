@@ -6,6 +6,7 @@
 import React from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { Award, BookOpen, Clock, CheckCircle2, AlertCircle, FileText, Users, Settings, Plus, GraduationCap, BellRing, Info } from 'lucide-react';
+import { isMatchingAdvisorName } from '../lib/googleSheets';
 
 interface DashboardProps {
   currentUser: User;
@@ -166,8 +167,8 @@ export default function Dashboard({
     // Find students under direct supervision of this advisor
     const mySupervisedStudents = allStudents.filter(s => {
       if (s.Role !== 'STUDENT') return false;
-      const isMain = s.Advisor && typeof s.Advisor === 'string' && s.Advisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
-      const isCo = s.CoAdvisor && typeof s.CoAdvisor === 'string' && s.CoAdvisor.toLowerCase().trim() === currentUser.FullName.toLowerCase().trim();
+      const isMain = isMatchingAdvisorName(currentUser.FullName, s.Advisor, s.Advisor, s.CoAdvisor);
+      const isCo = isMatchingAdvisorName(currentUser.FullName, s.CoAdvisor, s.Advisor, s.CoAdvisor);
       return isMain || isCo;
     });
 

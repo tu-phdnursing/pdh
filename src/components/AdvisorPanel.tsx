@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { User, Certificate, Activity, StudentPortfolioData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X, Lock, RefreshCw } from 'lucide-react';
+import { Users, Award, Clock, CheckCircle2, XCircle, MessageSquare, GraduationCap, ChevronRight, FileText, Check, AlertTriangle, Paperclip, ExternalLink, Calendar, Loader2, Microscope, Key, ShieldCheck, X, Lock, RefreshCw, Crown } from 'lucide-react';
 import { resolvePhotoUrl, resolveFileUrl, isImageFile, formatDisplayDate, getStudentPortfolio, saveStudentPortfolio, isMatchingAdvisorName } from '../lib/googleSheets';
 import StudentInformation from './StudentInformation';
 import StudentProgressDashboard from './StudentProgressDashboard';
@@ -35,6 +35,9 @@ export default function AdvisorPanel({
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [activeTab, setActiveTab] = useState<'certs' | 'activities' | 'profile' | 'portfolio' | 'research'>('profile');
   
+  // View mode for Super Advisor / Admin ('ALL' or 'MY_DIRECT')
+  const [advisorViewFilter, setAdvisorViewFilter] = useState<'ALL' | 'MY_DIRECT'>('ALL');
+
   // Feedback states
   const [feedbackText, setFeedbackText] = useState('');
   const [actingId, setActingId] = useState<string | null>(null);
@@ -112,19 +115,34 @@ export default function AdvisorPanel({
     }
   };
 
-  // Filter students under this Advisor's supervision
-  const myStudents = students.filter(s => {
-    if (s.Role !== 'STUDENT') return false;
-    if (currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN') return true;
-    
-    return isMatchingAdvisorName(currentUser.FullName, s.Advisor, s.Advisor, s.CoAdvisor) ||
-           isMatchingAdvisorName(currentUser.FullName, s.CoAdvisor, s.Advisor, s.CoAdvisor);
+  // Helper to check advisor relationship to logged-in user
+  const getAdvisorRelation = (student: User) => {
+    const isMain = isMatchingAdvisorName(currentUser.FullName, student.Advisor, student.Advisor, student.CoAdvisor);
+    const isCo = isMatchingAdvisorName(currentUser.FullName, student.CoAdvisor, student.Advisor, student.CoAdvisor);
+    if (isMain) return 'MAIN';
+    if (isCo) return 'CO';
+    return 'EXECUTIVE';
+  };
+
+  // Filter doctoral students
+  const allDocStudents = students.filter(s => s.Role === 'STUDENT');
+
+  const myDirectStudents = allDocStudents.filter(s => {
+    const rel = getAdvisorRelation(s);
+    return rel === 'MAIN' || rel === 'CO';
   });
+
+  const isSuperUser = currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN';
+
+  // Display students based on user role and filter selection
+  const displayedStudents = isSuperUser
+    ? (advisorViewFilter === 'MY_DIRECT' ? myDirectStudents : allDocStudents)
+    : myDirectStudents;
 
   // Default to selecting the first student for convenient overview if none is selected
   const activeStudent = selectedStudent;
 
-  // Check if current logged-in advisor is the assigned main advisor or co-advisor of the selected student
+  // Check if current logged-in advisor is assigned as main or co-advisor of the selected student
   const isAssignedAdvisor = activeStudent ? (
     currentUser.Role === 'SUPER_ADVISOR' || currentUser.Role === 'ADMIN' ||
     isMatchingAdvisorName(currentUser.FullName, activeStudent.Advisor, activeStudent.Advisor, activeStudent.CoAdvisor) ||
@@ -159,56 +177,109 @@ export default function AdvisorPanel({
           }}
           className={`w-full text-left p-3 rounded-xl transition duration-200 flex items-center gap-3 border cursor-pointer ${
             !selectedStudent
-              ? 'bg-red-50/50 border-red-100 text-tu-red'
+              ? 'bg-red-50/50 border-red-100 text-tu-red font-bold'
               : 'border-transparent text-gray-700 bg-white hover:bg-gray-50'
           }`}
         >
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-tu-red"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-tu-red"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
           </div>
           <div>
             <div className="font-bold text-sm">Progress Dashboard</div>
-            <div className="text-[10px] opacity-75">All Supervised Students</div>
+            <div className="text-[10px] opacity-75">{isSuperUser ? 'Executive & Supervised Overview' : 'All Supervised Students'}</div>
           </div>
         </button>
 
         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs space-y-3">
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Supervised Students</h3>
-          
-          <div className="space-y-1.5">
-            {myStudents.map((stud) => (
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              {isSuperUser ? 'Supervised Students' : 'Supervised Students'}
+            </h3>
+            <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              {displayedStudents.length} Students
+            </span>
+          </div>
+
+          {/* Scope Filter Tabs for SuperAdvisor / Admin */}
+          {isSuperUser && (
+            <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-semibold gap-1">
               <button
-                key={stud.UserID}
-                onClick={() => {
-                  setSelectedStudent(stud);
-                  setSelectedStudentPortfolio(null);
-                  setIsLoadingPortfolio(true);
-                  getStudentPortfolio(stud.StudentID || '').then(port => {
-                    setSelectedStudentPortfolio(port);
-                    setIsLoadingPortfolio(false);
-                  });
-                  setFeedbackText('');
-                }}
-                className={`w-full text-left p-3 rounded-xl transition duration-200 flex items-center gap-3 border cursor-pointer ${
-                  activeStudent?.UserID === stud.UserID
-                    ? 'bg-red-50/50 border-red-100 text-tu-red'
-                    : 'border-transparent text-gray-700 hover:bg-gray-50'
+                onClick={() => setAdvisorViewFilter('ALL')}
+                className={`flex-1 py-1.5 px-2 rounded-lg transition text-[11px] cursor-pointer ${
+                  advisorViewFilter === 'ALL'
+                    ? 'bg-white text-tu-red font-bold shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
-                <img
-                  src={resolvePhotoUrl(stud.PhotoURL)}
-                  alt={stud.FullName}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold text-xs truncate text-gray-800">{stud.FullName}</h4>
-                  <p className="text-[10px] text-gray-400 font-mono truncate">ID: {stud.StudentID}</p>
-                </div>
+                ทั้งหมด ({allDocStudents.length})
               </button>
-            ))}
+              <button
+                onClick={() => setAdvisorViewFilter('MY_DIRECT')}
+                className={`flex-1 py-1.5 px-2 rounded-lg transition text-[11px] cursor-pointer ${
+                  advisorViewFilter === 'MY_DIRECT'
+                    ? 'bg-white text-tu-red font-bold shadow-xs'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                ในความดูแล ({myDirectStudents.length})
+              </button>
+            </div>
+          )}
+          
+          <div className="space-y-1.5 max-h-[520px] overflow-y-auto pr-1">
+            {displayedStudents.map((stud) => {
+              const rel = getAdvisorRelation(stud);
+              return (
+                <button
+                  key={stud.UserID}
+                  onClick={() => {
+                    setSelectedStudent(stud);
+                    setSelectedStudentPortfolio(null);
+                    setIsLoadingPortfolio(true);
+                    getStudentPortfolio(stud.StudentID || '').then(port => {
+                      setSelectedStudentPortfolio(port);
+                      setIsLoadingPortfolio(false);
+                    });
+                    setFeedbackText('');
+                  }}
+                  className={`w-full text-left p-3 rounded-xl transition duration-200 flex items-start gap-3 border cursor-pointer ${
+                    activeStudent?.UserID === stud.UserID
+                      ? 'bg-red-50/50 border-red-100 text-tu-red'
+                      : 'border-transparent text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <img
+                    src={resolvePhotoUrl(stud.PhotoURL)}
+                    alt={stud.FullName}
+                    className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5 border border-gray-100"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-xs truncate text-gray-800">{stud.FullName}</h4>
+                    <p className="text-[10px] text-gray-400 font-mono truncate">ID: {stud.StudentID}</p>
+                    
+                    {/* Advisor Role Relationship Badge */}
+                    <div className="mt-1">
+                      {rel === 'MAIN' ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                          <Crown size={10} className="text-emerald-600" /> ที่ปรึกษาหลัก
+                        </span>
+                      ) : rel === 'CO' ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md">
+                          <Users size={10} className="text-sky-600" /> ที่ปรึกษาร่วม
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-medium text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-md">
+                          <ShieldCheck size={10} className="text-gray-400" /> ภาพรวมหลักสูตร
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
 
-            {myStudents.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4">No students found assigned to your name.</p>
+            {displayedStudents.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-6">No students found matching current filter.</p>
             )}
           </div>
         </div>
@@ -231,12 +302,37 @@ export default function AdvisorPanel({
                   <span className="text-[10px] font-mono font-semibold bg-red-50 text-tu-red px-2 py-0.5 rounded-full inline-block">
                     Student ID: {activeStudent.StudentID}
                   </span>
+                  
+                  {/* Advisor Relationship Badge for Selected Student */}
+                  {(() => {
+                    const rel = getAdvisorRelation(activeStudent);
+                    if (rel === 'MAIN') {
+                      return (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <Crown size={11} className="text-emerald-600" /> ท่านเป็น: อาจารย์ที่ปรึกษาหลัก
+                        </span>
+                      );
+                    }
+                    if (rel === 'CO') {
+                      return (
+                        <span className="text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <Users size={11} className="text-sky-600" /> ท่านเป็น: อาจารย์ที่ปรึกษาร่วม
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <ShieldCheck size={11} className="text-amber-600" /> ท่านเป็น: ผู้บริหาร / Super Advisor (กำกับดูแลภาพรวม)
+                      </span>
+                    );
+                  })()}
                 </div>
                 <p className="text-xs text-gray-500 leading-normal line-clamp-1 italic">
                   Dissertation Title: "{activeStudent.ThesisTitle || 'No thesis title defined yet'}"
                 </p>
-                <div className="flex justify-center sm:justify-start gap-4 text-[11px] text-gray-400 font-medium">
-                  <span>Line ID: {activeStudent.LineID || 'N/A'}</span>
+                <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-[11px] text-gray-600 font-medium pt-1 border-t border-gray-100 mt-1">
+                  <span><strong>Major Advisor:</strong> {activeStudent.Advisor || 'Unassigned'}</span>
+                  <span><strong>Co-Advisor:</strong> {activeStudent.CoAdvisor || 'Unassigned'}</span>
                   <span>Expected Grad: {activeStudent.ExpectedGraduationYear || 'N/A'}</span>
                 </div>
               </div>
@@ -853,13 +949,17 @@ export default function AdvisorPanel({
             </>
           )}
           </>
-        ) : myStudents.length > 0 ? (
-          <StudentProgressDashboard students={myStudents} onSelectStudent={(stud) => {
-            setSelectedStudent(stud);
-            setSelectedStudentPortfolio(null);
-            getStudentPortfolio(stud.StudentID || '').then(port => setSelectedStudentPortfolio(port));
-            setFeedbackText('');
-          }} />
+        ) : displayedStudents.length > 0 ? (
+          <StudentProgressDashboard
+            students={displayedStudents}
+            currentUser={currentUser}
+            onSelectStudent={(stud) => {
+              setSelectedStudent(stud);
+              setSelectedStudentPortfolio(null);
+              getStudentPortfolio(stud.StudentID || '').then(port => setSelectedStudentPortfolio(port));
+              setFeedbackText('');
+            }}
+          />
         ) : (
           <div className="bg-white p-12 text-center rounded-2xl border border-gray-100 shadow-xs">
             <Users className="mx-auto text-gray-300 mb-3" size={40} />
